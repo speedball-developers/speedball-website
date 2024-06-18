@@ -48,11 +48,23 @@ You can preview the production build with `pnpm run preview`.
 If the production build works, you can upload the /build/ folder, the package.json and the index.cjs files onto the server and let pm2 restart the application.
 You may also want to create a new package-lock.json file and upload it to the server. To do so use the `pnpm install --save-exact` comand.
 
-### Additional information
+## Creating Translations
 
-To add new translations, create them in the /messages/xx.json files and then run `pnpm build`. This will compile the language files and update the /lib/paraglide/messages/xx.js files from which the code imports its translations.
+There are multiple ways to create new translations. You can do it with [Sherlock - i18n inspector](https://marketplace.visualstudio.com/items?itemName=inlang.vs-code-extension) (highly recommended!), by using the [flink online website](https://fink.inlang.com/github.com/speedball-developers/speedball-website?project=%2Fproject.inlang&lang=en&lang=de&lang=fr&lang=ru) (recommended for non-programmers), or by doing it manually.
 
----
+#### with Sherlock
+
+Write some text into one of your files (most likely a +page.svelte file). Select the text with your mouse and press 'command' + '.' and then select 'Sherlock: extract message' to create a new translation entry, which you can edit further in the Sherlock Plugin view on the left side of your VS Code editor.
+
+#### via the flink online website
+
+Visit https://fink.inlang.com/github.com/speedball-developers/speedball-website?project=%2Fproject.inlang&lang=en&lang=de&lang=fr&lang=ru and login with your GitHub Account. Make the changes on the website and then submit them.
+
+#### manualy:
+
+Create new translation entries in the /messages/xx.json files and then run `pnpm build`. This will compile the language files and update the /lib/paraglide/messages/xx.js files from which the code imports its translations.
+
+## Additional information
 
 To generate new mysql schemata for drizzle use
 
