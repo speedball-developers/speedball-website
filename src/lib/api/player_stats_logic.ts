@@ -13,10 +13,11 @@ export const getData = async ({ cookies, fetch, params, url }) => {
 	let { fullEventName } = params;
 	const defaultStartDate = new Date('2013-04-10');
 	let startDate = url.searchParams.get('start-date');
-	if (startDate === undefined) startDate = defaultStartDate;
+	if (startDate === undefined || startDate === null) startDate = defaultStartDate;
 	else startDate = new Date(startDate);
 	let endDate = url.searchParams.get('end-date');
-	endDate = new Date(endDate ?? ''); // default is now (which is '')
+	if (endDate === undefined || endDate === null) endDate = new Date();
+	else endDate = new Date(endDate); // default is now (which is '')
 	endDate.setDate(endDate.getDate() + 1); // endDate should end at 23:59 time, so we just add another day
 
 	const pageNumber = url.searchParams.get('page') ?? '1';
@@ -142,7 +143,6 @@ export const getData = async ({ cookies, fetch, params, url }) => {
 			.innerJoin(mapRoundsTable, eq(playerResultsTable.round_id, mapRoundsTable.id))
 			.innerJoin(mapResultsTable, eq(mapRoundsTable.map_result_id, mapResultsTable.id))
 			.groupBy(playerResultsTable.login);
-
 		return {
 			playerList: playerStatsTotaledList2,
 			eventList,
