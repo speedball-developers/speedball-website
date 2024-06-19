@@ -55,12 +55,13 @@ There are multiple ways to create new translations. You can do it with [Sherlock
 #### with Sherlock
 
 Write some text into one of your files (most likely a +page.svelte file). Select the text with your mouse and press 'command' + '.' and then select 'Sherlock: extract message' to create a new translation entry, which you can edit further in the Sherlock Plugin view on the left side of your VS Code editor.
+Sometimes the plugin wont load or perform changes. In this case restart VS Code.
 
 #### via the flink online website
 
 Visit https://fink.inlang.com/github.com/speedball-developers/speedball-website?project=%2Fproject.inlang&lang=en&lang=de&lang=fr&lang=ru and login with your GitHub Account. Make the changes on the website and then submit them.
 
-#### manualy:
+#### manually:
 
 Create new translation entries in the /messages/xx.json files and then run `pnpm build`. This will compile the language files and update the /lib/paraglide/messages/xx.js files from which the code imports its translations.
 

@@ -1,8 +1,0 @@
-{
-	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"navigation_home": "Start",
-	"navigation_playerstats": "Spieler-Statistiken",
-	"navigaton_matches": "Spiele",
-	"navigaton_events": "Events",
-	"navigaton_maps": "Maps"
-}

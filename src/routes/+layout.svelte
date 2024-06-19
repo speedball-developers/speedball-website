@@ -20,6 +20,7 @@
 	} from 'flowbite-svelte';
 	import { YoutubeSolid, GithubSolid, DiscordSolid, TwitterSolid } from 'flowbite-svelte-icons';
 	import LanguageSwitcher from '$components/LanguageSwitcher.svelte';
+	import { page } from '$app/stores';
 </script>
 
 <ParaglideJS {i18n}>
@@ -42,15 +43,19 @@
 			<Button outline size="sm">
 				<MediaQuery query="(max-width: 1024px)" let:matches>
 					{#if matches}
-						Login
+						{m.navigation_login()}
 					{:else}
-						Login via Maniaplanet
+						{m.navigation_login_with_maniaplanet()}
 					{/if}
 				</MediaQuery>
 			</Button>
 			<NavHamburger />
 		</div>
-		<NavUl class="order-1">
+		<NavUl
+			activeUrl={$page.url.pathname}
+			activeClass="dark:text-white text-black font-bold"
+			class="order-1"
+		>
 			<NavLi href="/" active={true}>{m.navigation_home()}</NavLi>
 			<NavLi href="/player_stats/latest">{m.navigation_playerstats()}</NavLi>
 			<NavLi href="/funcups">{m.navigaton_matches()}</NavLi>
@@ -59,9 +64,11 @@
 		</NavUl>
 	</Navbar>
 
-	<slot></slot>
+	<div style="flex: 1;">
+		<slot></slot>
+	</div>
 
-	<Footer footerType="socialmedia">
+	<Footer footerType="socialmedia" class="w-full">
 		<hr class="my-6 border-gray-200 dark:border-gray-700 sm:mx-auto lg:my-8" />
 		<div class="sm:flex sm:items-center sm:justify-between">
 			<FooterCopyright href="/" by="Speedball" />
@@ -69,8 +76,8 @@
 				<FooterLinkGroup
 					ulClass="flex flex-wrap items-center mb-6 text-sm text-gray-500 sm:mb-0 dark:text-gray-400"
 				>
-					<FooterLink href="/">Privacy Policy</FooterLink>
-					<FooterLink href="/">Credits</FooterLink>
+					<FooterLink href="/">{m.navigation_privacy_policy()}</FooterLink>
+					<FooterLink href="/">{m.navigation_credits()}</FooterLink>
 				</FooterLinkGroup>
 				<FooterIcon href="https://www.youtube.com/watch?v=BNSCQ30Y8CU">
 					<YoutubeSolid

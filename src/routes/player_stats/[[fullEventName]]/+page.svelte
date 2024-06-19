@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$msgs';
 	import { onMount } from 'svelte';
 	import {
 		Table,
@@ -8,6 +9,7 @@
 		TableHead,
 		TableHeadCell,
 		Tooltip,
+		Popover,
 		Breadcrumb,
 		BreadcrumbItem,
 		Checkbox,
@@ -29,6 +31,7 @@
 	import MediaQuery from 'svelte-media-queries';
 	import { page } from '$app/stores';
 	import { pushState } from '$app/navigation';
+	import { languageTag } from '$paraglide/runtime';
 
 	// export let data;
 	let data = {};
@@ -38,7 +41,7 @@
 	async function fetchData(event = 'latest') {
 		dataHasLoaded = false;
 		const response = await fetch(
-			'/api/player_stats/' +
+			'/en/api/player_stats/' +
 				event +
 				'?start-date=' +
 				startDate.toISOString().split('T')[0] +
@@ -82,6 +85,7 @@
 	let searchTerm = '';
 	const changeSelectedEvent = (newSelectedEvent: string) => {
 		if (newSelectedEvent == selectedEvent) return;
+		eventDropdownOpen = false;
 
 		fetchData(newSelectedEvent);
 		pushState('/player_stats/' + newSelectedEvent + '/?' + $page.url.searchParams.toString(), {});
@@ -118,6 +122,7 @@
 		'storedShowedCategoriesPlayerStats',
 		showedCategoriesDefault
 	);
+
 	let showAllCategories = false;
 
 	const defaultStartDate = new Date('2013-04-10');
@@ -335,31 +340,44 @@
 		return false;
 	};
 
+	const changeNavigationBreadcrumb = (newUrl: string, newEvent: string) => {
+		pushState(newUrl, {});
+		if (newEvent !== selectedEvent) {
+			selectedEvent = newEvent;
+			fetchData(newEvent);
+		}
+	};
+
 	// load the data
 	onMount(async () => {
 		fetchData(selectedEvent);
 	});
+
+	let eventDropdownOpen = false;
+	let averageDropdownOpen = false;
 </script>
 
 <!-- class="mt-4 bg-opacity-75"
 	style="background-image:url({headerImage}); filter: grayscale(100%)" -->
 <div>
 	<Breadcrumb class="my-4 ml-4" aria-label="Player stats breadcrumb">
-		<BreadcrumbItem href="/" home>home</BreadcrumbItem>
-		<BreadcrumbItem href="/player_stats"
-			><svelte:fragment slot="icon">
-				<ChevronDoubleRightOutline class="mx-2 h-5 w-5 dark:text-white" />
-			</svelte:fragment>player stats</BreadcrumbItem
-		>
+		<BreadcrumbItem href="/" home>{m.navigation_home()}</BreadcrumbItem>
 		<BreadcrumbItem
-			href="/player_stats/{selectedEvent.split('-')[0]}{selectedEvent.split('-').length === 2
-				? '-all'
-				: ''}"
 			><svelte:fragment slot="icon">
 				<ChevronDoubleRightOutline class="mx-2 h-5 w-5 dark:text-white" />
-			</svelte:fragment>{selectedEvent.split('-')[0]}</BreadcrumbItem
+			</svelte:fragment><button on:click={() => changeNavigationBreadcrumb('/player_stats', 'all')}
+				>{m.navigation_playerstats()}</button
+			></BreadcrumbItem
 		>
-		{#if selectedEvent.split('-').length === 2}
+		<!-- href="/player_stats/{selectedEvent.split('-')[0]}{selectedEvent.split('-').length === 2
+				? '-all'
+				: ''}" -->
+		<BreadcrumbItem
+			><svelte:fragment slot="icon">
+				<ChevronDoubleRightOutline class="mx-2 h-5 w-5 dark:text-white" />
+			</svelte:fragment>{prettifySelectedEvent(selectedEvent.split('-')[0])}
+		</BreadcrumbItem>
+		{#if (selectedEvent ?? '').split('-').length === 2}
 			<BreadcrumbItem
 				><svelte:fragment slot="icon">
 					<ChevronDoubleRightOutline class="mx-2 h-5 w-5 dark:text-white" />
@@ -371,13 +389,18 @@
 	</Breadcrumb>
 	<div class="ml-4">
 		<Button class="w-40 whitespace-nowrap"
-			>{prettifySelectedEvent(selectedEvent)}<ChevronDownOutline
+			>{selectedEvent !== 'all' && selectedEvent !== 'public'
+				? prettifySelectedEvent(selectedEvent)
+				: selectedEvent === 'all'
+					? m.events_all()
+					: m.events_public()}<ChevronDownOutline
 				class="ms-2 h-6 w-6 text-white dark:text-white"
 			/></Button
 		>
-		<Dropdown>
-			<DropdownItem on:click={() => changeSelectedEvent('all')}>All</DropdownItem>
-			<DropdownItem on:click={() => changeSelectedEvent('public')}>Public</DropdownItem>
+		<Dropdown bind:open={eventDropdownOpen}>
+			<DropdownItem on:click={() => changeSelectedEvent('all')}>{m.events_all()}</DropdownItem>
+			<DropdownItem on:click={() => changeSelectedEvent('public')}>{m.events_public()}</DropdownItem
+			>
 			<DropdownDivider />
 			{#each Object.entries(eventListOrganized) as [event_name, events_array]}
 				<DropdownItem class="flex items-center justify-between">
@@ -387,7 +410,7 @@
 				</DropdownItem>
 				<Dropdown class="max-h-96 overflow-y-auto whitespace-nowrap" placement="right-start">
 					<DropdownItem on:click={() => changeSelectedEvent(event_name + '-' + 'all')}
-						>All</DropdownItem
+						>{m.events_all()}</DropdownItem
 					>
 					<DropdownDivider />
 					{#each events_array as event}
@@ -401,17 +424,21 @@
 		</Dropdown>
 
 		<Button class="mx-2"
-			>Shown Columns<ChevronDownOutline class="ms-2 h-6 w-6 text-white dark:text-white" /></Button
+			>{m.table_shown_columns()}<ChevronDownOutline
+				class="ms-2 h-6 w-6 text-white dark:text-white"
+			/></Button
 		>
 		<Dropdown class="w-44 cursor-pointer space-y-3 p-3 text-sm">
-			<DropdownItem on:click={() => ($showedCategoriesPlayerStats = { ...showedCategoriesDefault })}
-				>Reset Categories</DropdownItem
+			<DropdownItem
+				on:click={() => {
+					$showedCategoriesPlayerStats = { ...showedCategoriesDefault };
+				}}>{m.table_reset_categories()}</DropdownItem
 			>
 			<Checkbox
 				class="cursor-pointer"
 				on:click={() => clickShowAllCategories()}
 				checked={Object.values($showedCategoriesPlayerStats).every((v) => v === true)}
-				>All Categories</Checkbox
+				>{m.table_all_categories()}</Checkbox
 			>
 			<DropdownDivider />
 			{#each Object.keys($showedCategoriesPlayerStats) as category, i (category)}
@@ -432,22 +459,32 @@
 		<MediaQuery query="(max-width: 1024px)" let:matches>
 			{#if matches}
 				<Button class="w-52"
-					>{averageOrNot === averageOrNotType.TotalValues ? 'Total Values' : ''}{averageOrNot ===
-					averageOrNotType.AvgPerMap
-						? 'Average per Map'
+					>{averageOrNot === averageOrNotType.TotalValues
+						? m.table_total_values()
+						: ''}{averageOrNot === averageOrNotType.AvgPerMap
+						? m.table_average_per_map()
 						: ''}{averageOrNot === averageOrNotType.AvgPer10Min
-						? 'Average per 10min'
+						? m.table_average_per_10min()
 						: ''}<ChevronDownOutline class="ms-2 h-6 w-6 text-white dark:text-white" /></Button
 				>
-				<Dropdown>
-					<DropdownItem on:click={() => (averageOrNot = averageOrNotType.TotalValues)}
-						>Total Values</DropdownItem
+				<Dropdown bind:open={averageDropdownOpen}>
+					<DropdownItem
+						on:click={() => {
+							averageDropdownOpen = false;
+							averageOrNot = averageOrNotType.TotalValues;
+						}}>{m.table_total_values()}</DropdownItem
 					>
-					<DropdownItem on:click={() => (averageOrNot = averageOrNotType.AvgPerMap)}
-						>Average per Map</DropdownItem
+					<DropdownItem
+						on:click={() => {
+							averageDropdownOpen = false;
+							averageOrNot = averageOrNotType.AvgPerMap;
+						}}>{m.table_average_per_map()}</DropdownItem
 					>
-					<DropdownItem on:click={() => (averageOrNot = averageOrNotType.AvgPer10Min)}
-						>Average per 10min</DropdownItem
+					<DropdownItem
+						on:click={() => {
+							averageDropdownOpen = false;
+							averageOrNot = averageOrNotType.AvgPer10Min;
+						}}>{m.table_average_per_10min()}</DropdownItem
 					>
 				</Dropdown>
 			{:else}
@@ -455,24 +492,26 @@
 					<Button
 						color={isAverageButtonActive(averageOrNotType.TotalValues) ? 'blue' : 'light'}
 						class="mr-0 w-40 whitespace-nowrap py-3"
-						on:click={() => (averageOrNot = averageOrNotType.TotalValues)}>Total Values</Button
+						on:click={() => (averageOrNot = averageOrNotType.TotalValues)}
+						>{m.table_total_values()}</Button
 					>
 					<Button
 						color={isAverageButtonActive(averageOrNotType.AvgPerMap) ? 'blue' : 'light'}
 						class="m-0 w-40 whitespace-nowrap py-3"
-						on:click={() => (averageOrNot = averageOrNotType.AvgPerMap)}>Average per Map</Button
+						on:click={() => (averageOrNot = averageOrNotType.AvgPerMap)}
+						>{m.table_average_per_map()}</Button
 					><!-- ms-2  -->
 					<Button
 						color={isAverageButtonActive(averageOrNotType.AvgPer10Min) ? 'blue' : 'light'}
 						class="ml-0 w-40 whitespace-nowrap py-3"
-						on:click={() => (averageOrNot = averageOrNotType.AvgPer10Min)}>Average per 10min</Button
+						on:click={() => (averageOrNot = averageOrNotType.AvgPer10Min)}
+						>{m.table_average_per_10min()}</Button
 					></ButtonGroup
 				>
 			{/if}
 		</MediaQuery>
 	</div>
-	<br />
-	<div class="ml-4 max-w-80 whitespace-nowrap">
+	<div class="mb-4 ml-4 max-w-80 whitespace-nowrap">
 		start date <DateInput
 			timePrecision={null}
 			dynamicPositioning
@@ -494,8 +533,8 @@
 	<!--<Datepicker range />-->
 
 	<div class="w-100 flex">
-		<div class="flex-end mx-4 w-72">
-			<Search bind:value={searchTerm} placeholder="Search by login or nickname" />
+		<div class="flex-end mx-4 w-80">
+			<Search bind:value={searchTerm} placeholder={m.table_search_placeholder_login_nickname()} />
 		</div>
 	</div>
 	{#if Object.values($showedCategoriesPlayerStats).every((v) => v === false)}
@@ -504,25 +543,32 @@
 			Please select at least 1 category!
 		</Alert>
 	{:else}
-		<Table
-			class="w-6xl mt-2"
-			placeholder="Search by login or nickname"
-			hoverable={false}
-			striped={true}
-		>
+		<Table class="w-6xl mt-2" hoverable={false} striped={true}>
 			<caption
 				class="bg-white p-5 text-left text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white"
 			>
-				{prettifySelectedEvent(selectedEvent)}
+				{selectedEvent !== 'all' && selectedEvent !== 'public'
+					? prettifySelectedEvent(selectedEvent)
+					: selectedEvent === 'all'
+						? m.events_all()
+						: m.events_public()}
 				<p class="mt-1 text-sm font-normal text-gray-500 dark:text-gray-400">
 					{#if dataHasLoaded === true}
-						You are viewing the player stats of {prettifySelectedEvent(selectedEvent)}. The event
-						had {(data.playerList ?? []).length} players and {Math.ceil(
-							(data.playerList ?? []).reduce(
-								(partialSum, playerItem) => partialSum + parseInt(playerItem.maps_played),
-								0
-							) / 6
-						)} maps were played.
+						{m.player_statistics_table_caption({
+							selectedEvent:
+								selectedEvent !== 'all' && selectedEvent !== 'public'
+									? prettifySelectedEvent(selectedEvent)
+									: selectedEvent === 'all'
+										? m.events_all()
+										: m.events_public(),
+							amountPlayers: (data.playerList ?? []).length,
+							amountMaps: Math.ceil(
+								(data.playerList ?? []).reduce(
+									(partialSum, playerItem) => partialSum + parseInt(playerItem.maps_played),
+									0
+								) / 6
+							)
+						})}
 					{:else}
 						<div
 							class="h-2 w-1/2 animate-pulse rounded rounded-full border bg-gray-300 dark:border-slate-600 dark:bg-gray-500"
@@ -592,20 +638,31 @@
 											<!-- dark:hover:!bg-gray-60 hover:!bg-gray-50	hover:bg-slate-100	dark:hover:bg-slate-600-->
 											<!-- hover:bg-slate-100 dark:bg-gray-800 hover:dark:bg-slate-600 [&:not(:hover)]:bg-white  [&:not(:hover)]:dark:bg-gray-800" -->
 											<TableBodyCell
-												class="sticky left-0 z-10 w-48 max-w-48 overflow-hidden text-ellipsis {index %
-													2 ===
-												0
+												class="sticky left-0 z-10 w-48 max-w-48 {index % 2 === 0
 													? 'bg-white dark:bg-gray-800'
 													: 'bg-gray-50 dark:bg-gray-700'}"
-												id={'cell-login-' + index.toString()}
 											>
-												{@html colorParserToHtml(item[category])}
-												<Tooltip
+												<!-- direction: rtl; text-ellipsis -->
+												<div
+													style=""
+													class="max-w-48 overflow-hidden text-ellipsis"
+													id={'cell-login-' + index.toString()}
+												>
+													{@html colorParserToHtml(item[category])}
+												</div>
+												<Popover
+													class="ml-4 text-sm font-light"
+													title="login: {item.login}"
+													placement="right"
+													triggeredBy={'#cell-login-' + index.toString()}
+													>{@html colorParserToHtml(item[category])}</Popover
+												>
+												<!--<Tooltip
 													placement="right"
 													class=""
 													triggeredBy={'#cell-login-' + index.toString()}
 													>login: <span class="italic">{item.login}</span></Tooltip
-												>
+											>-->
 											</TableBodyCell>
 										{:else if category === 'maps_won'}
 											<TableBodyCell class="text-right">
@@ -647,9 +704,9 @@
 				</Dropdown>
 				<MediaQuery query="(max-width: 600px)" let:matches>
 					{#if matches}
-						max rows
+						{m.table_max_rows()}
 					{:else}
-						entries per page
+						{m.table_entries_per_page()}
 					{/if}
 				</MediaQuery>
 			</div>
@@ -665,7 +722,7 @@
 							<button
 								on:click={() => setPage(activePage - 1)}
 								class="ms-0 flex h-8 items-center justify-center rounded-s-lg border border-e-0 border-gray-300 bg-white px-3 leading-tight text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-								>Previous</button
+								>{m.table_previous()}</button
 							>
 						</li>
 						{#each visiblePaginationPages as i}
@@ -685,7 +742,7 @@
 								on:click={() => setPage(activePage + 1)}
 								class="flex h-8 items-center justify-center rounded-e-lg border border-gray-300 bg-white px-3 leading-tight text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
 							>
-								Next
+								{m.table_next()}
 							</button>
 						</li>
 					</ul>
@@ -704,5 +761,8 @@
 	/* set the width of the datepickers */
 	:global(#startDate, #endDate) {
 		width: 6rem !important;
+	}
+	:global(div[role='tooltip']) {
+		z-index: 100 !important;
 	}
 </style>

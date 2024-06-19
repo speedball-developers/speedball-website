@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="%paraglide.lang%" dir="%paraglide.textDirection%">
+<html lang="%paraglide.lang%" class="h-full" dir="%paraglide.textDirection%">
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.ico" />
@@ -7,7 +7,10 @@
 		<title>SpeedBall Website</title>
 		%sveltekit.head%
 	</head>
-	<body class="bg-white dark:bg-gray-800 dark:text-white" data-sveltekit-preload-data="hover">
+	<body
+		class="flex h-full flex-col bg-white dark:bg-gray-800 dark:text-white"
+		data-sveltekit-preload-data="hover"
+	>
 		<div style="display: contents">%sveltekit.body%</div>
 		<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/datepicker.min.js"></script>-->
 	</body>
