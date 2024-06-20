@@ -4,5 +4,6 @@ import * as runtime from '$lib/paraglide/runtime.js';
 
 // makse / path without locale ambigious
 export const i18n = createI18n(runtime, {
-	prefixDefaultLanguage: 'always'
+	prefixDefaultLanguage: 'always',
+	exclude: ['/api']
 });

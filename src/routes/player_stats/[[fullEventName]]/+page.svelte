@@ -41,7 +41,7 @@
 	async function fetchData(event = 'latest') {
 		dataHasLoaded = false;
 		const response = await fetch(
-			'/en/api/player_stats/' +
+			'/api/player_stats/' +
 				event +
 				'?start-date=' +
 				startDate.toISOString().split('T')[0] +
