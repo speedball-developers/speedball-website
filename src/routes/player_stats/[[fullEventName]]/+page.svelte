@@ -643,13 +643,15 @@
 													: 'bg-gray-50 dark:bg-gray-700'}"
 											>
 												<!-- direction: rtl; text-ellipsis -->
-												<div
-													style=""
-													class="max-w-48 overflow-hidden text-ellipsis"
-													id={'cell-login-' + index.toString()}
+												<a href="/profile/{item.login}" id={'cell-login-' + index.toString()}>
+													<div
+														class=" {showTeamStats
+															? 'max-w-96'
+															: 'max-w-48'} overflow-hidden text-ellipsis"
 												>
 													{@html colorParserToHtml(item[category])}
 												</div>
+												</a>
 												<Popover
 													class="ml-4 text-sm font-light"
 													title="login: {item.login}"
