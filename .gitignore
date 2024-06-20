@@ -10,3 +10,4 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 /src/lib/server/schema.ts
 /src/lib/server/drizzle/
+/php
