@@ -16,7 +16,8 @@
 		ButtonGroup,
 		Search,
 		ListPlaceholder,
-		Alert
+		Alert,
+		Toggle
 	} from 'flowbite-svelte';
 	import { persisted } from 'svelte-persisted-store';
 	import { DateInput } from 'date-picker-svelte';
@@ -31,7 +32,6 @@
 	import MediaQuery from 'svelte-media-queries';
 	import { page } from '$app/stores';
 	import { pushState } from '$app/navigation';
-	import { languageTag } from '$paraglide/runtime';
 
 	// export let data;
 	let data = {};
@@ -40,6 +40,12 @@
 
 	async function fetchData(event = 'latest') {
 		dataHasLoaded = false;
+		if (event.includes('all') || event === 'public') {
+			showTeamStats = false;
+			showTeamStatsEnabled = false;
+		} else {
+			showTeamStatsEnabled = true;
+		}
 		const response = await fetch(
 			'/api/player_stats/' +
 				event +
@@ -93,6 +99,9 @@
 		selectedEvent = newSelectedEvent;
 	};
 
+	let showTeamStats = false;
+	let showTeamStatsEnabled = true;
+
 	const showedCategoriesDefault = {
 		login: false,
 		nickname: true,
@@ -122,8 +131,6 @@
 		'storedShowedCategoriesPlayerStats',
 		showedCategoriesDefault
 	);
-
-	let showAllCategories = false;
 
 	const defaultStartDate = new Date('2013-04-10');
 	const defaultEndDate = new Date();
@@ -182,7 +189,9 @@
 		const direction = sortDirection;
 		let sorted = [];
 		let filteredItems = [];
-		filteredItems = (data.playerList ?? []).filter(
+		if (showTeamStats) filteredItems = teamData ?? [];
+		else filteredItems = data.playerList ?? [];
+		filteredItems = filteredItems.filter(
 			(item) =>
 				item.login.toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1 ||
 				item.nickname.toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1
@@ -254,12 +263,15 @@
 	};
 
 	const formatCellByCategory = (input: any, category: string) => {
-		let returnString = '';
-		try {
-			returnString = input.toString();
-		} catch (e) {}
+		if (isNaN(input)) return input;
+		let returnString = input.toString();
+
+		if (averageOrNot === averageOrNotType.TotalValues && category !== 'kd_ratio')
+			returnString = parseFloat(input).toFixed(0).toString();
+		else returnString = parseFloat(input).toFixed(2).toString();
+
 		if (category === 'playtime' || category === 'captures_total_time') {
-			const totalSeconds = input;
+			const totalSeconds = parseFloat(input);
 			if (totalSeconds > 60) {
 				let hours = Math.floor(totalSeconds / 3600).toString();
 				if (hours.length < 2) hours = '0' + hours;
@@ -268,7 +280,7 @@
 				let seconds = Math.floor(totalSeconds % 60).toString();
 				if (seconds.length < 2) seconds = '0' + seconds;
 				return hours + ':' + minutes + ':' + seconds;
-			} else return totalSeconds.toString() + 's';
+			} else return totalSeconds.toFixed(2).toString() + 's';
 		} else if (
 			category === 'captures_total_percent' &&
 			averageOrNot === averageOrNotType.TotalValues
@@ -276,13 +288,6 @@
 			returnString = input.toString();
 		else if (category === 'accuracy')
 			returnString = (Math.round(input * 10000) / 100).toFixed(2).toString();
-		else if (category !== 'maps_won' && category !== 'maps_played') {
-			try {
-				returnString = input.toFixed(2).toString();
-			} catch (e) {
-				returnString = input;
-			}
-		}
 
 		if (category === 'captures_total_percent' || category === 'accuracy') returnString += '%';
 		return returnString;
@@ -355,6 +360,110 @@
 
 	let eventDropdownOpen = false;
 	let averageDropdownOpen = false;
+	let showSummedEntry = false;
+	let showAverageEntry = false;
+
+	let summedEntry = {
+		login: 'summed-values',
+		nickname: 'summed-values',
+		rank: 0,
+		ladder_points: 0,
+		points: 0,
+		damage: 0,
+		kills: 0,
+		deaths: 0,
+		kd_ratio: 0,
+		accuracy: 0,
+		passes_done: 0,
+		passes_received: 0,
+		ball_hits: 0,
+		backstabs: 0,
+		captures: 0,
+		captures_total_percent: 0,
+		captures_total_time: 0,
+		playtime: 0,
+		maps_played: 0,
+		maps_won: 0
+	};
+
+	let averageEntry = { ...summedEntry };
+	$: {
+		if (showTeamStats) {
+			averageEntry.login = 'average-team';
+			averageEntry.nickname = 'average-team';
+		} else {
+			averageEntry.login = 'average-player';
+			averageEntry.nickname = 'average-player';
+		}
+	}
+
+	let summedAndAverageEntriesShownArray = [];
+	$: {
+		summedAndAverageEntriesShownArray = [];
+		if (showSummedEntry === true) summedAndAverageEntriesShownArray = [summedEntry];
+		if (showAverageEntry === true) summedAndAverageEntriesShownArray.push(averageEntry);
+	}
+
+	$: if (filteredAndSortedItems !== undefined && filteredAndSortedItems.length > 0) {
+		Object.keys(summedEntry).forEach((category) => {
+			if (category !== 'login' && category !== 'nickname') {
+				summedEntry[category] = filteredAndSortedItems.reduce(
+					(a, b) => a + parseFloat(b[category]),
+					0
+				);
+				averageEntry[category] = summedEntry[category] / filteredAndSortedItems.length;
+			}
+		});
+	}
+	let teamData = [];
+	const dontAddUpForTeams = ['accuracy', 'maps_won', 'maps_played', 'kd_ratio', 'playtime'];
+	$: {
+		teamData = [];
+		if (data.teams === undefined) teamData = [];
+		else {
+			Object.keys(data.teams).forEach((team) => {
+				let summedTeamEntry = {
+					login: team,
+					nickname: team,
+					rank: 0,
+					ladder_points: 0,
+					points: 0,
+					damage: 0,
+					kills: 0,
+					deaths: 0,
+					kd_ratio: 0,
+					accuracy: 0,
+					passes_done: 0,
+					passes_received: 0,
+					ball_hits: 0,
+					backstabs: 0,
+					captures: 0,
+					captures_total_percent: 0,
+					captures_total_time: 0,
+					playtime: 0,
+					maps_played: 0,
+					maps_won: 0
+				};
+				const players = data.playerList.filter((player) => data.teams[team].includes(player.login));
+				summedTeamEntry.nickname = players
+					.map((player) => player.nickname.toString())
+					.join('$z - ');
+				Object.keys(summedTeamEntry).forEach((category) => {
+					if (category !== 'login' && category !== 'nickname') {
+						summedTeamEntry[category] = players.reduce(
+							(a, b) =>
+								a +
+								parseFloat(b[category]) /
+									(dontAddUpForTeams.includes(category) ? players.length : 1),
+							0
+						);
+						// averageEntry[category] = summedEntry[category] / players.length;
+					}
+				});
+				teamData.push(summedTeamEntry);
+			});
+		}
+	}
 </script>
 
 <!-- class="mt-4 bg-opacity-75"
@@ -510,6 +619,13 @@
 				>
 			{/if}
 		</MediaQuery>
+		<Toggle class="my-4" bind:checked={showSummedEntry}>Show totalled values</Toggle>
+		<Toggle class="mb-4 " bind:checked={showAverageEntry}>Show average player / team</Toggle>
+		<Toggle class="mb-4 " bind:checked={showTeamStats} disabled={!showTeamStatsEnabled}
+			><span class={!showTeamStatsEnabled ? 'text-gray-400 dark:text-gray-500' : ''}
+				>Show team stats</span
+			></Toggle
+		>
 	</div>
 	<div class="mb-4 ml-4 max-w-80 whitespace-nowrap">
 		start date <DateInput
@@ -527,7 +643,6 @@
 			class="z-30 inline-block"
 			id="endDate"
 			bind:value={endDate}
-			on:click={() => console.log('hi')}
 		/>
 	</div>
 	<!--<Datepicker range />-->
@@ -581,9 +696,9 @@
 				<TableHead class="cursor-pointer ">
 					<TableHeadCell class="sticky top-0  bg-white dark:bg-gray-800 ">#</TableHeadCell>
 					{#each Object.keys($showedCategoriesPlayerStats) as category, i (category)}
-						{#if $showedCategoriesPlayerStats[category] === true || showAllCategories}
+						{#if $showedCategoriesPlayerStats[category] === true}
 							<TableHeadCell
-								class="sticky top-0 bg-white dark:bg-gray-800 {category == 'nickname'
+								class="sticky top-0 bg-white dark:bg-gray-800 {category === 'nickname'
 									? 'left-0 top-0 z-20 '
 									: 'z-10'} {!categoriesLeftAligned.includes(category) ? 'text-right' : ''}"
 								on:click={() => {
@@ -612,7 +727,7 @@
 									></div></TableBodyCell
 								>
 								{#each Object.keys($showedCategoriesPlayerStats) as category, i (category)}
-									{#if $showedCategoriesPlayerStats[category] === true || showAllCategories === true}
+									{#if $showedCategoriesPlayerStats[category] === true}
 										<TableBodyCell class="w-0 pr-0 italic"
 											><div
 												class="h-2 {category === 'nickname'
@@ -627,18 +742,24 @@
 					</TableBody>
 				{:else}
 					<TableBody tableBodyClass="divide-y">
-						{#each filteredAndSortedItems ?? [] as item, index (item.login)}
+						{#each summedAndAverageEntriesShownArray.concat(filteredAndSortedItems) ?? [] as item, index (item.login)}
 							<TableBodyRow>
 								<TableBodyCell class="w-0 pr-0 italic"
-									>{index + $limitForTable * activePage + 1}</TableBodyCell
+									>{#if item.login !== 'summed-values' && item.login !== 'average-player' && item.login !== 'average-team'}
+										{index +
+											$limitForTable * activePage +
+											1 -
+											summedAndAverageEntriesShownArray.length}{/if}</TableBodyCell
 								>
 								{#each Object.keys($showedCategoriesPlayerStats) as category, i (category)}
-									{#if $showedCategoriesPlayerStats[category] === true || showAllCategories === true}
+									{#if $showedCategoriesPlayerStats[category] === true}
 										{#if category == 'nickname'}
 											<!-- dark:hover:!bg-gray-60 hover:!bg-gray-50	hover:bg-slate-100	dark:hover:bg-slate-600-->
 											<!-- hover:bg-slate-100 dark:bg-gray-800 hover:dark:bg-slate-600 [&:not(:hover)]:bg-white  [&:not(:hover)]:dark:bg-gray-800" -->
 											<TableBodyCell
-												class="sticky left-0 z-10 w-48 max-w-48 {index % 2 === 0
+												class="sticky left-0 z-10 {showTeamStats
+													? 'w-96 max-w-96'
+													: 'w-48 max-w-48'} {index % 2 === 0
 													? 'bg-white dark:bg-gray-800'
 													: 'bg-gray-50 dark:bg-gray-700'}"
 											>
@@ -648,9 +769,9 @@
 														class=" {showTeamStats
 															? 'max-w-96'
 															: 'max-w-48'} overflow-hidden text-ellipsis"
-												>
-													{@html colorParserToHtml(item[category])}
-												</div>
+													>
+														{@html colorParserToHtml(item[category])}
+													</div>
 												</a>
 												<Popover
 													class="ml-4 text-sm font-light"

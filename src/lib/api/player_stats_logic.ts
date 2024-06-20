@@ -8,6 +8,7 @@ import {
 } from '$lib/server/schema.js';
 import { eq, min, max, sum, count, sql, desc, gt, lt, and } from 'drizzle-orm';
 import { event_number, map_results } from '$lib/server/drizzle/schema';
+import { groupBy } from '$lib/groupyBy';
 
 export const getData = async ({ cookies, fetch, params, url }) => {
 	let { fullEventName } = params;
@@ -75,7 +76,9 @@ export const getData = async ({ cookies, fetch, params, url }) => {
 		.innerJoin(mapResultsTable, eq(mapRoundsTable.map_result_id, mapResultsTable.id))
 		.groupBy(playerResultsTable.login);
 
-	let playerStatsTotaledList = await db
+	let teams = [];
+
+	const playerStatsTotaledList = await db
 		.select({
 			login: playerStatsTotaled.login,
 			nickname: playerStatsTotaled.nickname,
@@ -143,13 +146,42 @@ export const getData = async ({ cookies, fetch, params, url }) => {
 			.innerJoin(mapRoundsTable, eq(playerResultsTable.round_id, mapRoundsTable.id))
 			.innerJoin(mapResultsTable, eq(mapRoundsTable.map_result_id, mapResultsTable.id))
 			.groupBy(playerResultsTable.login);
+
+		const teamsMap = new Map();
+		if (eventName !== 'all' && eventName !== 'public') {
+			teams = await db
+				.select({
+					login: playerResultsTable.login,
+					match_team:
+						sql`CONCAT(${mapResultsTable.match_number}, '-', ${max(playerResultsTable.team)})`.as(
+							'match_team'
+						)
+				})
+				.from(playerResultsTable)
+				.where(eventWhereCondition)
+				.innerJoin(mapRoundsTable, eq(playerResultsTable.round_id, mapRoundsTable.id))
+				.innerJoin(mapResultsTable, eq(mapRoundsTable.map_result_id, mapResultsTable.id))
+				.groupBy(playerResultsTable.login, mapResultsTable.match_number);
+
+			teams = groupBy(teams, 'match_team');
+			Object.keys(teams).forEach((team) => {
+				const playersSorted = teams[team].map((player) => player.login);
+				if (playersSorted.length === 3)
+					teamsMap.set(
+						playersSorted.sort().join('-'),
+						teams[team].map((player) => player.login)
+					);
+			});
+		}
 		return {
 			playerList: playerStatsTotaledList2,
 			eventList,
 			playerStatsTotaledList2,
 			fullEventName,
 			pageNumber,
-			sortBy
+			sortBy,
+			// converts the Map to an object
+			teams: Object.fromEntries(teamsMap.entries())
 		};
 	}
 
