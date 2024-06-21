@@ -55,7 +55,7 @@ There are multiple ways to create new translations. You can do it with [Sherlock
 #### with Sherlock
 
 Write some text into one of your files (most likely a +page.svelte file). Select the text with your mouse and press 'command' + '.' and then select 'Sherlock: extract message' to create a new translation entry, which you can edit further in the Sherlock Plugin view on the left side of your VS Code editor.
-Sometimes the plugin wont load or perform changes. In this case restart VS Code.
+Sometimes the plugin wont load or perform changes. In this case click add the plugin tab at the left of VS Code and click on restart Sherlock if available. Otherwise restart VS Code.
 
 #### via the flink online website
 
