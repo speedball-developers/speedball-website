@@ -28,14 +28,21 @@
 	<img
 		src={headerImage}
 		class="absolute start-0 top-0 z-30 h-40 w-screen object-cover object-center"
-		alt="Speedball Logo"
+		alt="SpeedBall Logo"
 	/><br />
-	<Navbar class="myNavBarImageFix sticky top-0 z-50 w-full border-b px-2 py-2.5 sm:px-4">
+	<Navbar
+		class="myNavBarImageFix border-gray sticky top-0 z-50 w-full border-b-2 bg-white px-2 py-2.5 dark:border-0 sm:px-4"
+	>
 		<NavBrand href="/">
-			<img src={logo} class="h-6 sm:h-9" alt="Speedball Logo" />
-			<span class="self-center whitespace-nowrap text-xl font-semibold dark:text-white"
-				>&nbsp;Speedball</span
-			>
+			<img src={logo} class="h-6 sm:h-9" alt="SpeedBall Logo" />
+
+			<MediaQuery query="(min-width: 500px)" let:matches>
+				{#if matches}
+					<span class="self-center whitespace-nowrap text-xl font-semibold dark:text-white"
+						>&nbsp;SpeedBall</span
+					>
+				{/if}
+			</MediaQuery>
 		</NavBrand>
 		<div class="flex md:order-2">
 			<DarkMode class="mr-4" />
@@ -56,7 +63,7 @@
 			activeClass="dark:text-white text-black font-bold"
 			class="order-1"
 		>
-			<NavLi href="/" active={true}>{m.navigation_home()}</NavLi>
+			<NavLi href="/">{m.navigation_home()}</NavLi>
 			<NavLi href="/player_stats/latest">{m.navigation_playerstats()}</NavLi>
 			<NavLi href="/funcups">{m.navigaton_matches()}</NavLi>
 			<NavLi href="/history">{m.navigaton_events()}</NavLi>
@@ -64,7 +71,7 @@
 		</NavUl>
 	</Navbar>
 
-	<div style="flex: 1;">
+	<div style="flex: 1;" class="page-content mx-auto mt-4 px-4">
 		<slot></slot>
 	</div>
 
@@ -113,6 +120,11 @@
 </ParaglideJS>
 
 <style>
+	.page-content {
+		width: 80rem;
+		max-width: 100vw;
+	}
+
 	:global(.myNavBarImageFix) {
 		/* margin-top: 10.625rem; /*  pt-42.5  0.25rem*42.5 */
 		margin-top: 8rem; /*  pt-42.5  0.25rem*42.5 */
