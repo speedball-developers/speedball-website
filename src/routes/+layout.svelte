@@ -52,7 +52,7 @@
 			<NavHamburger />
 		</div>
 		<NavUl
-			activeUrl={$page.url.pathname}
+			activeUrl={i18n.route($page.url.pathname)}
 			activeClass="dark:text-white text-black font-bold"
 			class="order-1"
 		>
