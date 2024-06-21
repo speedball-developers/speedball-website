@@ -22,7 +22,7 @@ Ask one of the developers to give you the /stc/lib/server/schema.ts file.
 
 #### Recommended VS Code Extensions:
 
-ESLint, Prettier, Svelte for VS Code, Sherlock – inspector for i18n
+ESLint, Prettier, Svelte for VS Code, Sherlock – inspector for i18n, Tailwind CSS IntelliSense
 
 ### Start the app in development mode (hot-code reloading, error reporting, etc.)
 
