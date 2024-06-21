@@ -8,8 +8,8 @@
 	// currentPathWithoutLanguage = i18n.route($page.url.pathname);
 </script>
 
-<Button class="w-18 mr-4 pr-3" color="light"
-	>{languageTag().toLocaleUpperCase()}
+<Button class="w-18 mr-4 mt-2 pr-3" color="light"
+	>{languageTag()?.toLocaleUpperCase()}
 	<ChevronDownOutline class=" h-6 w-6 text-white invert dark:text-white" /></Button
 >
 <Dropdown class="w-18">

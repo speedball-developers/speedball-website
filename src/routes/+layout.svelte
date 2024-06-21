@@ -5,11 +5,27 @@
 	// import { lang } from '$lib/lang';
 	import * as m from '$msgs';
 	import '../app.css';
-	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Button, DarkMode } from 'flowbite-svelte';
+	import {
+		Navbar,
+		NavBrand,
+		NavLi,
+		NavUl,
+		NavHamburger,
+		Button,
+		DarkMode,
+		Avatar,
+		Dropdown,
+		DropdownHeader,
+		DropdownItem,
+		DropdownDivider
+	} from 'flowbite-svelte';
 	import logo from '$lib/images/SpeedBall_LogoNoText.png';
 	import headerImage from '$lib/images/PackImage.jpg';
 	import paypalLogo from '$lib/images/PayPalLogo.svg';
 	import MediaQuery from 'svelte-media-queries';
+	import { SignIn, SignOut } from '@auth/sveltekit/components';
+	import { page } from '$app/stores';
+	import { signIn, signOut } from '@auth/sveltekit/client';
 
 	import {
 		Footer,
@@ -20,7 +36,7 @@
 	} from 'flowbite-svelte';
 	import { YoutubeSolid, GithubSolid, DiscordSolid, TwitterSolid } from 'flowbite-svelte-icons';
 	import LanguageSwitcher from '$components/LanguageSwitcher.svelte';
-	import { page } from '$app/stores';
+	import colorParserToHtml from '$lib/color_parser';
 </script>
 
 <ParaglideJS {i18n}>
@@ -45,17 +61,45 @@
 			</MediaQuery>
 		</NavBrand>
 		<div class="flex md:order-2">
-			<DarkMode class="mr-4" />
+			<DarkMode class="mr-4 mt-1" />
 			<LanguageSwitcher />
-			<Button outline size="sm">
-				<MediaQuery query="(max-width: 1024px)" let:matches>
-					{#if matches}
-						{m.navigation_login()}
-					{:else}
-						{m.navigation_login_with_maniaplanet()}
-					{/if}
-				</MediaQuery>
-			</Button>
+			{#if $page.data.session}
+				{(console.log($page.data.session), '')}
+				<div class="flex items-center">
+					<Avatar id="profileAvatar" class="cursor-pointer align-middle"
+						>{$page.data.session?.profile?.login.slice(0, 2).toUpperCase()}</Avatar
+					>
+				</div>
+				<Dropdown triggeredBy="#profileAvatar">
+					<DropdownHeader>
+						<span class="block text-sm italic">{$page.data.session?.profile?.login}</span>
+						<span class="block truncate text-sm font-medium"
+							>{@html colorParserToHtml($page.data.session?.profile?.nickname ?? '')}</span
+						>
+					</DropdownHeader><a href="/profile/{$page.data.session?.profile?.login}">
+						<DropdownItem>Profile</DropdownItem></a
+					>
+					<a href="/profile/{$page.data.session?.profile?.login}#settings"
+						><DropdownItem>Settings</DropdownItem></a
+					>
+					<DropdownDivider />
+					<DropdownItem>
+						<!-- data-no-translate -->
+						<button on:click={() => signOut()}>Sign out</button></DropdownItem
+					>
+				</Dropdown>
+			{:else}
+				<Button outline size="sm" on:click={() => signIn('maniaplanet')}>
+					<MediaQuery query="(max-width: 1024px)" let:matches>
+						{#if matches}
+							{m.navigation_login()}
+						{:else}
+							{m.navigation_login_with_maniaplanet()}
+						{/if}
+					</MediaQuery>
+				</Button>
+			{/if}
+
 			<NavHamburger />
 		</div>
 		<NavUl
@@ -79,41 +123,43 @@
 		<hr class="my-6 border-gray-200 dark:border-gray-700 sm:mx-auto lg:my-8" />
 		<div class="sm:flex sm:items-center sm:justify-between">
 			<FooterCopyright href="/" by="Speedball" />
-			<div class="mt-4 flex space-x-6 sm:mt-0 sm:justify-center rtl:space-x-reverse">
+			<div class="mt-4 flex flex-wrap space-x-6 sm:mt-0 sm:justify-center rtl:space-x-reverse">
 				<FooterLinkGroup
-					ulClass="flex flex-wrap items-center mb-6 text-sm text-gray-500 sm:mb-0 dark:text-gray-400"
+					ulClass="flex flex-wrap items-center mb-6 text-sm text-gray-500 sm:mb-0 dark:text-gray-400 mr-6"
 				>
 					<FooterLink href="/">{m.navigation_privacy_policy()}</FooterLink>
 					<FooterLink href="/">{m.navigation_credits()}</FooterLink>
 				</FooterLinkGroup>
-				<FooterIcon href="https://www.youtube.com/watch?v=BNSCQ30Y8CU">
-					<YoutubeSolid
-						class="h-5 w-5 text-gray-500 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white"
-					/>
-				</FooterIcon>
-				<FooterIcon href="https://discord.gg/V2WrGHK">
-					<DiscordSolid
-						class="h-5 w-5 text-gray-500 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white"
-					/>
-				</FooterIcon>
-				<FooterIcon href="https://www.paypal.me/TheDmark">
-					<img
-						src={paypalLogo}
-						class="pt-0.5 opacity-80 grayscale dark:opacity-50 dark:invert"
-						id="paypalLogo"
-						alt="paypal logo"
-					/>
-				</FooterIcon>
-				<FooterIcon href="https://twitter.com/ShootmaniaS">
-					<TwitterSolid
-						class="h-5 w-5 text-gray-500 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white"
-					/>
-				</FooterIcon>
-				<FooterIcon href="/">
-					<GithubSolid
-						class="h-5 w-5 text-gray-500 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white"
-					/>
-				</FooterIcon>
+				<div class="!ml-0 flex space-x-6 sm:mt-0 sm:justify-center rtl:space-x-reverse">
+					<FooterIcon href="https://www.youtube.com/watch?v=BNSCQ30Y8CU">
+						<YoutubeSolid
+							class="h-5 w-5 text-gray-500 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white"
+						/>
+					</FooterIcon>
+					<FooterIcon href="https://discord.gg/V2WrGHK">
+						<DiscordSolid
+							class="h-5 w-5 text-gray-500 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white"
+						/>
+					</FooterIcon>
+					<FooterIcon href="https://www.paypal.me/TheDmark">
+						<img
+							src={paypalLogo}
+							class="pt-0.5 opacity-80 grayscale dark:opacity-50 dark:invert"
+							id="paypalLogo"
+							alt="paypal logo"
+						/>
+					</FooterIcon>
+					<FooterIcon href="https://twitter.com/ShootmaniaS">
+						<TwitterSolid
+							class="h-5 w-5 text-gray-500 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white"
+						/>
+					</FooterIcon>
+					<FooterIcon href="/">
+						<GithubSolid
+							class="h-5 w-5 text-gray-500 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white"
+						/>
+					</FooterIcon>
+				</div>
 			</div>
 		</div>
 	</Footer>
