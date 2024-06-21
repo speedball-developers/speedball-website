@@ -10,8 +10,6 @@
 		TableHeadCell,
 		Tooltip,
 		Popover,
-		Breadcrumb,
-		BreadcrumbItem,
 		Checkbox,
 		ButtonGroup,
 		Search,
@@ -469,34 +467,7 @@
 <!-- class="mt-4 bg-opacity-75"
 	style="background-image:url({headerImage}); filter: grayscale(100%)" -->
 <div>
-	<Breadcrumb class="my-4 ml-4" aria-label="Player stats breadcrumb">
-		<BreadcrumbItem href="/" home>{m.navigation_home()}</BreadcrumbItem>
-		<BreadcrumbItem
-			><svelte:fragment slot="icon">
-				<ChevronDoubleRightOutline class="mx-2 h-5 w-5 dark:text-white" />
-			</svelte:fragment><button on:click={() => changeNavigationBreadcrumb('/player_stats', 'all')}
-				>{m.navigation_playerstats()}</button
-			></BreadcrumbItem
-		>
-		<!-- href="/player_stats/{selectedEvent.split('-')[0]}{selectedEvent.split('-').length === 2
-				? '-all'
-				: ''}" -->
-		<BreadcrumbItem
-			><svelte:fragment slot="icon">
-				<ChevronDoubleRightOutline class="mx-2 h-5 w-5 dark:text-white" />
-			</svelte:fragment>{prettifySelectedEvent(selectedEvent.split('-')[0])}
-		</BreadcrumbItem>
-		{#if (selectedEvent ?? '').split('-').length === 2}
-			<BreadcrumbItem
-				><svelte:fragment slot="icon">
-					<ChevronDoubleRightOutline class="mx-2 h-5 w-5 dark:text-white" />
-				</svelte:fragment><span class="font-bold text-black dark:text-white"
-					>{selectedEvent.split('-')[1]}</span
-				></BreadcrumbItem
-			>
-		{/if}
-	</Breadcrumb>
-	<div class="ml-4">
+	<div>
 		<Button class="w-40 whitespace-nowrap"
 			>{selectedEvent !== 'all' && selectedEvent !== 'public'
 				? prettifySelectedEvent(selectedEvent)
