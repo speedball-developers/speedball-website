@@ -30,6 +30,7 @@
 	import MediaQuery from 'svelte-media-queries';
 	import { page } from '$app/stores';
 	import { pushState } from '$app/navigation';
+	import { concat } from 'drizzle-orm/mysql-core/expressions';
 
 	// export let data;
 	let data = {};
@@ -362,8 +363,8 @@
 	let showAverageEntry = false;
 
 	let summedEntry = {
-		login: 'summed-values',
-		nickname: 'summed-values',
+		login: 'total-values',
+		nickname: 'total-values',
 		rank: 0,
 		ladder_points: 0,
 		points: 0,
@@ -419,10 +420,10 @@
 		teamData = [];
 		if (data.teams === undefined) teamData = [];
 		else {
-			Object.keys(data.teams).forEach((team) => {
+			data.teams.forEach((team) => {
 				let summedTeamEntry = {
-					login: team,
-					nickname: team,
+					login: team.logins,
+					nickname: team.logins,
 					rank: 0,
 					ladder_points: 0,
 					points: 0,
@@ -442,10 +443,22 @@
 					maps_played: 0,
 					maps_won: 0
 				};
-				const players = data.playerList.filter((player) => data.teams[team].includes(player.login));
-				summedTeamEntry.nickname = players
-					.map((player) => player.nickname.toString())
-					.join('$z - ');
+				const players = data.playerList.filter((player) => team.logins.includes(player.login));
+				summedTeamEntry.nickname = players.map((player) => player.nickname.toString()).join('$z, ');
+				// assign the players player1,player2,player3 to a team if registered in the teams database
+				if (data.formedTeamsAssignments !== undefined) {
+					const teamAssignment = data.formedTeamsAssignments
+						.filter((teamEntry) => teamEntry.event === selectedEvent)
+						.filter((teamEntry) =>
+							players.every((player) => teamEntry.login.includes(player.login))
+						)
+						.pop();
+					if (teamAssignment !== undefined) {
+						summedTeamEntry.nickname = teamAssignment.name;
+						if (teamAssignment.custom_name !== null && teamAssignment.custom_name !== '')
+							summedTeamEntry.nickname = teamAssignment.custom_name;
+					}
+				}
 				Object.keys(summedTeamEntry).forEach((category) => {
 					if (category !== 'login' && category !== 'nickname') {
 						summedTeamEntry[category] = players.reduce(
@@ -590,15 +603,22 @@
 				>
 			{/if}
 		</MediaQuery>
-		<Toggle class="my-4" bind:checked={showSummedEntry}>Show totalled values</Toggle>
-		<Toggle class="mb-4 " bind:checked={showAverageEntry}>Show average player / team</Toggle>
-		<Toggle class="mb-4 " bind:checked={showTeamStats} disabled={!showTeamStatsEnabled}
+		<Toggle class="my-4 w-fit cursor-pointer" bind:checked={showSummedEntry}
+			>Show totalled values</Toggle
+		>
+		<Toggle class="mb-4 w-fit cursor-pointer" bind:checked={showAverageEntry}
+			>Show average player / team</Toggle
+		>
+		<Toggle
+			class="mb-4 w-fit cursor-pointer"
+			bind:checked={showTeamStats}
+			disabled={!showTeamStatsEnabled}
 			><span class={!showTeamStatsEnabled ? 'text-gray-400 dark:text-gray-500' : ''}
 				>Show team stats</span
 			></Toggle
 		>
 	</div>
-	<div class="mb-4 ml-4 max-w-80 whitespace-nowrap">
+	<div class="mb-4 max-w-80 whitespace-nowrap">
 		start date <DateInput
 			timePrecision={null}
 			dynamicPositioning
@@ -619,7 +639,7 @@
 	<!--<Datepicker range />-->
 
 	<div class="w-100 flex">
-		<div class="flex-end mx-4 w-80">
+		<div class="flex-end w-80">
 			<Search bind:value={searchTerm} placeholder={m.table_search_placeholder_login_nickname()} />
 		</div>
 	</div>
@@ -631,7 +651,7 @@
 	{:else}
 		<Table class="w-6xl mt-2" hoverable={false} striped={true}>
 			<caption
-				class="bg-white p-5 text-left text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white"
+				class="bg-white py-5 text-left text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white"
 			>
 				{selectedEvent !== 'all' && selectedEvent !== 'public'
 					? prettifySelectedEvent(selectedEvent)
@@ -665,11 +685,13 @@
 			<!-- class="sticky-table-wrapper" -->
 			<div>
 				<TableHead class="cursor-pointer ">
-					<TableHeadCell class="sticky top-0  bg-white dark:bg-gray-800 ">#</TableHeadCell>
+					<TableHeadCell class="sticky top-0  bg-sky-400 text-white dark:bg-sky-800 "
+						>#</TableHeadCell
+					>
 					{#each Object.keys($showedCategoriesPlayerStats) as category, i (category)}
 						{#if $showedCategoriesPlayerStats[category] === true}
 							<TableHeadCell
-								class="sticky top-0 bg-white dark:bg-gray-800 {category === 'nickname'
+								class="sticky top-0 bg-sky-400 text-white dark:bg-sky-800 {category === 'nickname'
 									? 'left-0 top-0 z-20 '
 									: 'z-10'} {!categoriesLeftAligned.includes(category) ? 'text-right' : ''}"
 								on:click={() => {
@@ -716,7 +738,7 @@
 						{#each summedAndAverageEntriesShownArray.concat(filteredAndSortedItems) ?? [] as item, index (item.login)}
 							<TableBodyRow>
 								<TableBodyCell class="w-0 pr-0 italic"
-									>{#if item.login !== 'summed-values' && item.login !== 'average-player' && item.login !== 'average-team'}
+									>{#if !['total-values', 'average-player', 'average-team'].includes(item.login)}
 										{index +
 											$limitForTable * activePage +
 											1 -
@@ -724,7 +746,7 @@
 								>
 								{#each Object.keys($showedCategoriesPlayerStats) as category, i (category)}
 									{#if $showedCategoriesPlayerStats[category] === true}
-										{#if category == 'nickname'}
+										{#if category == 'nickname' && !['total-values', 'average-player', 'average-team'].includes(item.login)}
 											<!-- dark:hover:!bg-gray-60 hover:!bg-gray-50	hover:bg-slate-100	dark:hover:bg-slate-600-->
 											<!-- hover:bg-slate-100 dark:bg-gray-800 hover:dark:bg-slate-600 [&:not(:hover)]:bg-white  [&:not(:hover)]:dark:bg-gray-800" -->
 											<TableBodyCell
@@ -778,12 +800,13 @@
 								{/each}
 							</TableBodyRow>
 						{/each}
-					</TableBody>{/if}
+					</TableBody>
+				{/if}
 			</div></Table
 		>
-		<div class="flex">
-			<div class="mr-4 inline flex-1">
-				<Button color="light" class="ml-4 mr-2 mt-4"
+		<div class="item-center flex">
+			<div class="{amountOfPages > 1 ? 'absolute' : ''} mr-4 inline">
+				<Button color="light" class="mr-2 mt-4"
 					>{$limitForTable}<ChevronDownOutline
 						class="text-dark dark:text-dark ms-2 h-6 w-6"
 					/></Button
@@ -810,7 +833,13 @@
 			We are not using <Pagination /> because it only works with href and not with on:click
 			so we use the code from the official Flowbite documentation
 		/>-->
-				<div class="w-50 mt-4 flex justify-center" style="max-width: 100svw">
+				<div class="w-50 mt-5 flex-1 justify-center pt-0.5 text-center" style="max-width: 100svw">
+					<MediaQuery query="(max-width: 50rem)" let:matches>
+						{#if matches}
+							<div class="h-8"></div>
+							<br />
+						{/if}
+					</MediaQuery>
 					<ul class="inline-flex -space-x-px text-sm">
 						<li>
 							<button

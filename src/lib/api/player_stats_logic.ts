@@ -4,7 +4,10 @@ import {
 	playerResultsTable,
 	mapRoundsTable,
 	mapResultsTable,
-	playerStatsTotaled
+	playerStatsTotaled,
+	teamsTable,
+	teamsAssignmentTable,
+	teamsMembershipTable
 } from '$lib/server/schema.js';
 import { eq, min, max, sum, count, sql, desc, gt, lt, and } from 'drizzle-orm';
 import { event_number, map_results } from '$lib/server/drizzle/schema';
@@ -147,31 +150,47 @@ export const getData = async ({ cookies, fetch, params, url }) => {
 			.innerJoin(mapResultsTable, eq(mapRoundsTable.map_result_id, mapResultsTable.id))
 			.groupBy(playerResultsTable.login);
 
-		const teamsMap = new Map();
+		/* returns: 
+		[
+			{
+				name: 'Speedballerz',
+				event: 'teamcup-1',
+				login: 'dmark,janfo,rsty'
+			}, ...
+		] */
+		const formedTeamsAssignments = await db
+			.select({
+				name: teamsTable.name,
+				custom_name: teamsTable.custom_name,
+				event:
+					sql`CONCAT(${teamsAssignmentTable.event}, '-', ${teamsAssignmentTable.event_number})`.as(
+						'event'
+					),
+				login: sql`GROUP_CONCAT(${teamsMembershipTable.login})` // ORDER BY ${teamsMembershipTable.login}
+			})
+			.from(teamsTable)
+			.where(eq(teamsMembershipTable.enabled, 1))
+			.innerJoin(teamsAssignmentTable, eq(teamsAssignmentTable.team_id, teamsTable.id))
+			.innerJoin(
+				teamsMembershipTable,
+				eq(teamsMembershipTable.team_participation_id, teamsAssignmentTable.id)
+			)
+			.groupBy(teamsAssignmentTable.event, teamsAssignmentTable.event_number, teamsTable.name);
+
+		let teams = [];
 		if (eventName !== 'all' && eventName !== 'public') {
 			teams = await db
 				.select({
-					login: playerResultsTable.login,
-					match_team:
-						sql`CONCAT(${mapResultsTable.match_number}, '-', ${max(playerResultsTable.team)})`.as(
-							'match_team'
+					logins:
+						sql`DISTINCT GROUP_CONCAT(DISTINCT ${playerResultsTable.login} ORDER BY ${playerResultsTable.login} SEPARATOR ', ')`.as(
+							'logins'
 						)
 				})
 				.from(playerResultsTable)
 				.where(eventWhereCondition)
 				.innerJoin(mapRoundsTable, eq(playerResultsTable.round_id, mapRoundsTable.id))
 				.innerJoin(mapResultsTable, eq(mapRoundsTable.map_result_id, mapResultsTable.id))
-				.groupBy(playerResultsTable.login, mapResultsTable.match_number);
-
-			teams = groupBy(teams, 'match_team');
-			Object.keys(teams).forEach((team) => {
-				const playersSorted = teams[team].map((player) => player.login);
-				if (playersSorted.length === 3)
-					teamsMap.set(
-						playersSorted.sort().join('-'),
-						teams[team].map((player) => player.login)
-					);
-			});
+				.groupBy(mapResultsTable.match_number, playerResultsTable.team);
 		}
 		return {
 			playerList: playerStatsTotaledList2,
@@ -180,8 +199,8 @@ export const getData = async ({ cookies, fetch, params, url }) => {
 			fullEventName,
 			pageNumber,
 			sortBy,
-			// converts the Map to an object
-			teams: Object.fromEntries(teamsMap.entries())
+			formedTeamsAssignments,
+			teams
 		};
 	}
 
