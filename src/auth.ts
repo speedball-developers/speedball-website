@@ -63,11 +63,7 @@ export const { handle, signIn, signOut } = SvelteKitAuth({
 export async function authorizationAdminURLHandle({ event, resolve }) {
 	const listOfAdmin = ['rsty', 'dmark', 'gamer0x', 'der_rote_flitzer'];
 	const currentUrl = i18n.route(event.url.pathname);
-	console.log(currentUrl);
-	if (
-		currentUrl.startsWith('/admin') ||
-		(currentUrl.startsWith('/api') && currentUrl.includes('/admin'))
-	) {
+	if (currentUrl.startsWith('/admin') || currentUrl.startsWith('/api/admin')) {
 		const session = await event.locals.auth();
 		if (!session || !listOfAdmin.includes(session?.profile?.login)) {
 			// Redirect to the signin page
