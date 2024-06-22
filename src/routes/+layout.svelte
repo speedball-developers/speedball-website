@@ -64,7 +64,6 @@
 			<DarkMode class="mr-4 mt-1" />
 			<LanguageSwitcher />
 			{#if $page.data.session}
-				{(console.log($page.data.session), '')}
 				<div class="flex items-center">
 					<Avatar id="profileAvatar" class="cursor-pointer align-middle"
 						>{$page.data.session?.profile?.login.slice(0, 2).toUpperCase()}</Avatar
@@ -85,11 +84,15 @@
 					<DropdownDivider />
 					<DropdownItem>
 						<!-- data-no-translate -->
-						<button on:click={() => signOut()}>Sign out</button></DropdownItem
+						<button on:click={() => signOut({ callbackUrl: '/' })}>Sign out</button></DropdownItem
 					>
 				</Dropdown>
 			{:else}
-				<Button outline size="sm" on:click={() => signIn('maniaplanet')}>
+				<Button
+					outline
+					size="sm"
+					on:click={() => signIn('maniaplanet', { callbackUrl: '/profile/' })}
+				>
 					<MediaQuery query="(max-width: 1024px)" let:matches>
 						{#if matches}
 							{m.navigation_login()}
