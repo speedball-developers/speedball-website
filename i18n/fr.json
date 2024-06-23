@@ -8,5 +8,8 @@
 	"navigation_privacy_policy": "Politique de confidentialité",
 	"navigation_credits": "Crédits",
 	"navigation_login": "Connexion",
-	"navigation_login_with_maniaplanet": "Connexion avec Maniaplanet"
+	"navigation_login_with_maniaplanet": "Connexion avec Maniaplanet",
+	"events_all": "Toutes les parties",
+	"events_public": "Publique",
+	"table_all_categories": "Toutes les catégories"
 }
