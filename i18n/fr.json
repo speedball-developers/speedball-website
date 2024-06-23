@@ -1,6 +1,6 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"navigation_home": "Home",
+	"navigation_home": "Acceuil",
 	"navigation_playerstats": "Player Stats",
 	"navigaton_events": "Atlas"
 }
