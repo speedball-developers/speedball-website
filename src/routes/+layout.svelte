@@ -17,7 +17,16 @@
 <style>
 	.page-content {
 		/* 80rem is best practice. Because of px-4 the page has a padding of 1+1 so we give the site 82 width.  */
-		width: 82rem;
+		/* changed my mind. let's show more on the screen */
+		width: 110rem;
 		max-width: 100vw;
+	}
+
+	/* for 21:9 screens */
+	@media (min-aspect-ratio: 2/1) {
+		.page-content {
+			width: 140rem;
+			max-width: 100vw;
+		}
 	}
 </style>
