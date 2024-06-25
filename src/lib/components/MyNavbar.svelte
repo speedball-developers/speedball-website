@@ -55,7 +55,6 @@
 			</div>
 			<Dropdown triggeredBy="#profileAvatar">
 				<DropdownHeader>
-					<span class="block text-sm italic">{$page.data.session?.profile?.login}</span>
 					<span class="block truncate text-sm font-medium"
 						>{@html colorParserToHtml($page.data.session?.profile?.nickname ?? '')}</span
 					>
@@ -96,10 +95,10 @@
 		class="order-1"
 	>
 		<NavLi href="/">{m.navigation_home()}</NavLi>
-		<NavLi href="/player_stats/latest">{m.navigation_playerstats()}</NavLi>
-		<NavLi href="/funcups">{m.navigaton_matches()}</NavLi>
-		<NavLi href="/history">{m.navigaton_events()}</NavLi>
-		<NavLi href="/league">{m.navigaton_maps()}</NavLi>
+		<NavLi href="/player_stats/all">{m.navigation_playerstats()}</NavLi>
+		<NavLi href="/matches">{m.navigaton_matches()}</NavLi>
+		<NavLi href="/events">{m.navigaton_events()}</NavLi>
+		<NavLi href="/maps">{m.navigaton_maps()}</NavLi>
 	</NavUl>
 </Navbar>
 
