@@ -11,7 +11,6 @@ import {
 } from '$lib/server/schema.js';
 import { eq, min, max, sum, count, sql, desc, gt, lt, and } from 'drizzle-orm';
 import { event_number, map_results } from '$lib/server/drizzle/schema';
-import { groupBy } from '$lib/groupyBy';
 
 export const getData = async ({ cookies, fetch, params, url }) => {
 	let { fullEventName } = params;
@@ -45,11 +44,15 @@ export const getData = async ({ cookies, fetch, params, url }) => {
 		.orderBy(desc(mapResultsTable.date));
 
 	// get latest event if no event specidfied
-	if (eventName === '' || eventName === 'latest') {
+	if (eventName === 'latest') {
 		eventName = eventList[0].event ?? 'all';
 		eventNumber = eventList[0].event_number ?? -1;
 		fullEventName = eventName;
 		if (eventNumber >= 0) fullEventName += '-' + eventNumber.toString();
+	}
+
+	if (eventName === '') {
+		eventName = 'all';
 	}
 
 	/* const countedPlayerList = await db
