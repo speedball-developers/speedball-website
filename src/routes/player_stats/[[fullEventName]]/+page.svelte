@@ -475,6 +475,8 @@
 			});
 		}
 	}
+
+	let dropdownHoveredActive = '';
 </script>
 
 <!-- class="mt-4 bg-opacity-75"
@@ -495,8 +497,66 @@
 			<DropdownItem on:click={() => changeSelectedEvent('public')}>{m.events_public()}</DropdownItem
 			>
 			<DropdownDivider />
-			{#each Object.entries(eventListOrganized) as [event_name, events_array]}
-				<DropdownItem class="flex items-center justify-between">
+			{#each Object.entries(eventListOrganized) as [event_name, events_array], index}
+				<li>
+					<!-- svelte-ignore a11y-mouse-events-have-key-events -->
+					<button
+						id="doubleDropdownButton-{index}"
+						data-dropdown-toggle="doubleDropdown-{index}"
+						data-dropdown-placement="right-start"
+						on:mouseover={() => {
+							dropdownHoveredActive = 'doubleDropdown-' + index.toString();
+						}}
+						on:mouseleave={() => {
+							dropdownHoveredActive = '';
+						}}
+						type="button"
+						class="flex w-44 items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
+						>{prettifySelectedEvent(event_name)}<ChevronRightOutline
+							class="ms-2 h-6 w-6 text-primary-700 dark:text-white"
+						/></button
+					>
+					<!-- svelte-ignore a11y-no-static-element-interactions -->
+					<!-- svelte-ignore a11y-mouse-events-have-key-events -->
+					<div
+						on:mouseover={() => {
+							dropdownHoveredActive = 'doubleDropdown-' + index.toString();
+						}}
+						class="{dropdownHoveredActive === 'doubleDropdown-' + index.toString()
+							? 'visible'
+							: 'hidden'} absolute left-44 -mt-12"
+					>
+						<div
+							id="doubleDropdown-{index}"
+							class="z-10 ml-1 w-fit divide-y divide-gray-100 whitespace-nowrap rounded-lg bg-white shadow dark:bg-gray-700"
+						>
+							<ul
+								class="max-h-96 overflow-y-auto py-2 text-left text-sm text-gray-700 dark:text-gray-200"
+								aria-labelledby="doubleDropdownButton"
+							>
+								<li>
+									<button
+										on:click={() => changeSelectedEvent(event_name + '-' + 'all')}
+										class="block w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
+										>{m.events_all()}</button
+									>
+								</li>
+
+								<DropdownDivider />
+								{#each events_array as event}
+									<li>
+										<button
+											on:click={() => changeSelectedEvent(event_name + '-' + event.event_number)}
+											class="block w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
+											>{prettifySelectedEvent(event_name) + ' ' + event.event_number}</button
+										>
+									</li>
+								{/each}
+							</ul>
+						</div>
+					</div>
+				</li>
+				<!--<DropdownItem class="flex items-center justify-between">
 					{prettifySelectedEvent(event_name)}<ChevronRightOutline
 						class="ms-2 h-6 w-6 text-primary-700 dark:text-white"
 					/>
@@ -512,7 +572,7 @@
 							>{prettifySelectedEvent(event_name) + ' ' + event.event_number}</DropdownItem
 						>
 					{/each}
-				</Dropdown>
+				</Dropdown>-->
 			{/each}
 		</Dropdown>
 
