@@ -59,6 +59,7 @@
 					<span class="block truncate text-sm font-medium"
 						>{@html colorParserToHtml($page.data.session?.profile?.nickname ?? '')}</span
 					>
+					<span class="block text-sm italic">{$page.data.session?.profile?.login}</span>
 				</DropdownHeader><a href="/profile/{$page.data.session?.profile?.login}">
 					<DropdownItem>Profile</DropdownItem></a
 				>
