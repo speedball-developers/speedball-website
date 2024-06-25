@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as m from '$msgs';
 	import paypalLogo from '$lib/images/PayPalLogo.svg';
+	import twitchLogo from '$lib/images/twitch-logo.svg';
 
 	import {
 		Footer,
@@ -37,14 +38,17 @@
 				<FooterIcon href="https://www.paypal.me/TheDmark">
 					<img
 						src={paypalLogo}
-						class="pt-0.5 opacity-80 grayscale dark:opacity-50 dark:invert"
+						class="pt-0.5 opacity-80 grayscale hover:opacity-100 dark:opacity-50 dark:invert dark:hover:opacity-100"
 						id="paypalLogo"
 						alt="paypal logo"
 					/>
 				</FooterIcon>
-				<FooterIcon href="https://twitter.com/ShootmaniaS">
-					<TwitterSolid
-						class="h-5 w-5 text-gray-500 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white"
+				<FooterIcon href="https://www.twitch.tv/speedballtv">
+					<img
+						src={twitchLogo}
+						class="h-4 pt-0.5 opacity-60 grayscale hover:opacity-100 dark:opacity-40 dark:invert dark:hover:opacity-100"
+						id="twitchLogo"
+						alt="twitch logo"
 					/>
 				</FooterIcon>
 				<FooterIcon href="/">
