@@ -1,12 +1,26 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"navigation_home": "Acceuil",
-	"navigation_playerstats": "Statistiques joueurs",
+	"navigation_playerstats": "Statistiques des joueurs",
 	"navigaton_matches": "Matchs",
 	"navigaton_events": "Évènements",
 	"navigaton_maps": "Cartes",
 	"navigation_privacy_policy": "Politique de confidentialité",
 	"navigation_credits": "Crédits",
 	"navigation_login": "Connexion",
-	"navigation_login_with_maniaplanet": "Connexion avec Maniaplanet"
+	"navigation_login_with_maniaplanet": "Connexion avec Maniaplanet",
+	"events_all": "Toutes les parties",
+	"events_public": "Parties publiques",
+	"table_shown_columns": "Catégories",
+	"table_reset_categories": "Réinitialiser les filtres",
+	"table_all_categories": "Toutes les catégories",
+	"table_total_values": "Total",
+	"table_average_per_map": "Moyenne / carte",
+	"table_average_per_10min": "Moyenne / 10min",
+	"table_previous": "Précédente",
+	"table_next": "Suivante",
+	"table_max_rows": "Nombre maximum de lignes",
+	"table_entries_per_page": "lignes par page",
+	"player_statistics_table_caption": "Statistiques des joueurs pour le·la {selectedEvent}. {amountPlayers} joueur·euse·s ont participé et {amountMaps} cartes ont été jouées.",
+	"table_search_placeholder_login_nickname": "Recherche par \"login\" ou par \"nickname\""
 }
