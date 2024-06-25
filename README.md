@@ -46,7 +46,7 @@ You can preview the production build with `pnpm run preview`.
 > The app uses a node.js adapter and is uploaded onto a server using plesk and pm2. To learn more about other target environments take a look at other [adapters](https://kit.svelte.dev/docs/adapters).
 
 If the production build works, you can upload the /build/ folder, the package.json and the index.cjs files onto the server and let pm2 restart the application.
-You may also want to create a new package-lock.json file and upload it to the server. To do so use the `pnpm install --save-exact` comand.
+You may also want to upload the new pnpm-lock.yaml file to the server, if there are problems with new libraries.
 
 ## Creating Translations
 
