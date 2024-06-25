@@ -7,7 +7,9 @@ export const i18n = createI18n(runtime, {
 	prefixDefaultLanguage: 'always',
 	exclude: [
 		'/api',
+		/^\/api.*$/,
 		'/auth/',
+		/^\/auth.*$/,
 		'/signin',
 		'/signout'
 		/*,'/auth/signout',
