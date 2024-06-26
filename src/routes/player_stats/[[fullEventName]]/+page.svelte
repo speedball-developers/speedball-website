@@ -13,9 +13,10 @@
 		Checkbox,
 		ButtonGroup,
 		Search,
-		ListPlaceholder,
 		Alert,
-		Toggle
+		Toggle,
+		Range,
+		Label
 	} from 'flowbite-svelte';
 	import { persisted } from 'svelte-persisted-store';
 	import { DateInput } from 'date-picker-svelte';
@@ -88,15 +89,8 @@
 					.replaceAll('points', 'Points')
 					.substring(1);
 	let searchTerm = '';
-	const changeSelectedEvent = (newSelectedEvent: string) => {
-		if (newSelectedEvent == selectedEvent) return;
-		eventDropdownOpen = false;
-
-		fetchData(newSelectedEvent);
-		pushState('/player_stats/' + newSelectedEvent + '/?' + $page.url.searchParams.toString(), {});
-		// goto(`/player_stats/${newSelectedEvent}`);
-		selectedEvent = newSelectedEvent;
-	};
+	let minLadderPoints = 1000;
+	let maxLadderPoints = 100000;
 
 	let showTeamStats = false;
 	let showTeamStatsEnabled = true;
@@ -192,8 +186,9 @@
 		else filteredItems = data.playerList ?? [];
 		filteredItems = filteredItems.filter(
 			(item) =>
-				item.login.toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1 ||
-				item.nickname.toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1
+				item.ladder_points >= minLadderPoints &&
+				(item.login.toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1 ||
+					item.nickname.toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1)
 		);
 
 		// change values if Average per Map or Average per 10 Minutes has been selected instead of Total Values
@@ -477,6 +472,12 @@
 	}
 
 	let dropdownHoveredActive = '';
+
+	$: maxLadderPoints = Math.max(
+		...(apiFetchedData.playerList ?? [{ ladder_points: 50000 }]).map((item) =>
+			parseFloat(item.ladder_points)
+		)
+	);
 </script>
 
 <!-- class="mt-4 bg-opacity-75"
@@ -728,6 +729,17 @@
 			/>
 		</div>
 	</div>
+	<Label>Min ladder points: {minLadderPoints}</Label>
+	<Range
+		class="w-80"
+		id="range-minmax"
+		min="0"
+		max={maxLadderPoints}
+		bind:value={minLadderPoints}
+	/>
+	<br />
+	<br />
+
 	<!--<Datepicker range />-->
 
 	<div class="w-100 flex">
