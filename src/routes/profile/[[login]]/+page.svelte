@@ -6,7 +6,7 @@
 	let showHiddenText = false;
 </script>
 
-hi {data.post.login}
+hi {data?.post?.login}
 <Button on:click={() => (showHiddenText = !showHiddenText)}>I am a button</Button>
 {#if showHiddenText}
 	You clicked the button
