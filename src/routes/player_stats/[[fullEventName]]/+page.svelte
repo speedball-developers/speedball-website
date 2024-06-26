@@ -1,6 +1,5 @@
 <script lang="ts">
 	import * as m from '$msgs';
-	import { onMount } from 'svelte';
 	import {
 		Table,
 		TableBody,
@@ -8,7 +7,6 @@
 		TableBodyRow,
 		TableHead,
 		TableHeadCell,
-		Tooltip,
 		Popover,
 		Checkbox,
 		ButtonGroup,
@@ -20,22 +18,23 @@
 	} from 'flowbite-svelte';
 	import { persisted } from 'svelte-persisted-store';
 	import { DateInput } from 'date-picker-svelte';
-	import { goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import colorParserToHtml from '$lib/color_parser';
 	import { Button, Dropdown, DropdownItem, DropdownDivider } from 'flowbite-svelte';
-	import {
-		ChevronDownOutline,
-		ChevronRightOutline,
-		ChevronDoubleRightOutline
-	} from 'flowbite-svelte-icons';
+	import { ChevronDownOutline } from 'flowbite-svelte-icons';
 	import MediaQuery from 'svelte-media-queries';
 	import { page } from '$app/stores';
 	import { pushState } from '$app/navigation';
-	import { concat } from 'drizzle-orm/mysql-core/expressions';
+	import type { PageData } from '../$types';
+	import EventSelector from '$components/EventSelector.svelte';
+	import { navigating } from '$app/stores';
+	import { onMount } from 'svelte';
 
 	// export let data;
-	let data = {};
+	export let data: PageData;
+	let apiFetchedData = {};
 	let dataHasLoaded = false;
+	$: dataHasLoaded = $navigating === null;
 	// $: console.log(data);
 
 	async function fetchData(event = 'latest') {
@@ -46,35 +45,34 @@
 		} else {
 			showTeamStatsEnabled = true;
 		}
-		const response = await fetch(
-			'/api/player_stats/' +
-				event +
-				'?start-date=' +
-				startDate.toISOString().split('T')[0] +
-				'&end-date=' +
-				endDate.toISOString().split('T')[0]
-		);
+		let fetchUrl = '/api/player_stats/' + event + '?';
+		if (startDate !== startDateUnchanged)
+			fetchUrl += 'start-date=' + startDate.toISOString().split('T')[0];
+
+		if (endDate !== endDateUnchanged)
+			fetchUrl += '&end-date=' + endDate.toISOString().split('T')[0];
+
+		const response = await fetch(fetchUrl);
 		const result = await response.json();
-		data = result;
+		apiFetchedData = result;
 		dataHasLoaded = true;
 		return result;
 	}
 
-	// wanting to use Object.groupBy but it is too new for typescript so we use this implementation
-	// code from https://stackoverflow.com/questions/14446511/most-efficient-method-to-groupby-on-an-array-of-objects/56877421
-	const groupBy = (arr, k, fn = () => true) =>
-		arr.reduce((r, c) => (fn(c[k]) ? (r[c[k]] = [...(r[c[k]] || []), c]) : null, r), {});
-	// we exclude public and empty '' events as they are not numbered events
-	let eventListOrganized = [];
+	const changeSelectedEvent = (newSelectedEvent: string) => {
+		if (newSelectedEvent == selectedEvent) return;
+		eventDropdownOpen = false;
 
-	$: eventListOrganized = groupBy(
-		(data.eventList ?? []).filter((event) => event.event != '' && event.event != 'public'),
-		'event'
-	);
+		fetchData(newSelectedEvent);
+		pushState('/player_stats/' + newSelectedEvent + '/?' + $page.url.searchParams.toString(), {});
+		// goto(`/player_stats/${newSelectedEvent}`);
+		selectedEvent = newSelectedEvent;
+	};
 
-	let selectedEvent = $page.params.fullEventName;
-	$: if (Object.hasOwn(data, 'fullEventName') && data.fullEventName !== '')
-		selectedEvent = data.fullEventName;
+	let selectedEvent = $page.params.fullEventName ?? 'all';
+	$: if (apiFetchedData.fullEventName !== undefined && apiFetchedData.fullEventName !== '')
+		selectedEvent = apiFetchedData.fullEventName;
+
 	const prettifySelectedEvent = (selectedEvent: string) =>
 		selectedEvent[0] === undefined
 			? ''
@@ -82,6 +80,7 @@
 				selectedEvent
 					.replaceAll('-', ' ')
 					.replaceAll('_', ' ')
+					.replaceAll('capture total', 'captures total')
 					.replaceAll('cup', 'Cup')
 					.replaceAll(' time', ' Time')
 					.replaceAll(' percent', ' Percent')
@@ -97,7 +96,8 @@
 
 	const showedCategoriesDefault = {
 		login: false,
-		nickname: true,
+		nickname: false,
+		shortname: true,
 		rank: false,
 		ladder_points: false,
 		points: true,
@@ -111,13 +111,13 @@
 		ball_hits: false,
 		backstabs: true,
 		captures: true,
-		captures_total_percent: false,
-		captures_total_time: false,
+		capture_total_percent: false,
+		capture_total_time: false,
 		playtime: true,
 		maps_played: false,
 		maps_won: true
 	};
-	const categoriesLeftAligned = ['login', 'nickname'];
+	const categoriesLeftAligned = ['login', 'nickname', 'shortname'];
 
 	// persisted means that we save the preferences of the user in the localstorage of the browser
 	export const showedCategoriesPlayerStats = persisted(
@@ -125,17 +125,19 @@
 		showedCategoriesDefault
 	);
 
-	const defaultStartDate = new Date('2013-04-10');
-	const defaultEndDate = new Date();
-	let startDate = defaultStartDate;
-	let endDate = defaultEndDate;
-	const categoriesWhichAreNonNumerical = ['login', 'nickname'];
+	//let startDate = new Date('2013-04-10');
+	//let endDate = new Date();
+	let startDate = new Date('2013-04-10');
+	let endDate = new Date();
+	let startDateUnchanged = startDate;
+	let endDateUnchanged = endDate;
+	const categoriesWhichAreNonNumerical = ['login', 'nickname', 'shortname'];
 	const sortArrowDownCharacter = '▼';
 	const sortArrowUpCharacter = '▲'; //as
 	const defaultLimitForTable = 30;
 	export let limitForTable = persisted('storedLimitForTablePlayerStats', defaultLimitForTable);
 	// let limitForTable = 30;
-	let sortKey = Object.hasOwn(data, 'sortBy') ? data.sortBy.split('-')[0] : 'damage'; // default sort key
+	let sortKey = data?.sortBy !== undefined ? data.sortBy.split('-')[0] : 'damage'; // default sort key
 	let sortDirection = -1; // default sort direction (descending)
 	if ((data.sortBy ?? '-').split('-')[1] === 'asc') sortDirection = 1;
 	enum averageOrNotType {
@@ -148,7 +150,7 @@
 
 	let amountOfPages = 1;
 	let activePage = parseInt(data.pageNumber ?? '1') - 1;
-	amountOfPages = Math.ceil((data.playerList ?? []).length / $limitForTable);
+	amountOfPages = Math.ceil((apiFetchedData.playerList ?? []).length / $limitForTable);
 	if (activePage < 0 || activePage >= amountOfPages) activePage = 0;
 	let visiblePaginationPages: number[];
 	$: {
@@ -183,7 +185,7 @@
 		let sorted = [];
 		let filteredItems = [];
 		if (showTeamStats) filteredItems = teamData ?? [];
-		else filteredItems = data.playerList ?? [];
+		else filteredItems = apiFetchedData.playerList ?? [];
 		filteredItems = filteredItems.filter(
 			(item) =>
 				item.ladder_points >= minLadderPoints &&
@@ -196,7 +198,8 @@
 			filteredItems = filteredItems.map((item) => {
 				const newItem = {};
 				Object.keys(item).forEach((key) => {
-					if (['login', 'nickname', 'kd_ratio', 'accuracy'].includes(key)) newItem[key] = item[key];
+					if (['login', 'nickname', 'kd_ratio', 'accuracy', 'shortname'].includes(key))
+						newItem[key] = item[key];
 					else newItem[key] = Math.round((item[key] / item.maps_played) * 100) / 100;
 				});
 				return newItem;
@@ -205,7 +208,8 @@
 			filteredItems = filteredItems.map((item) => {
 				const newItem = {};
 				Object.keys(item).forEach((key) => {
-					if (['login', 'nickname', 'kd_ratio', 'accuracy'].includes(key)) newItem[key] = item[key];
+					if (['login', 'nickname', 'kd_ratio', 'accuracy', 'shortname'].includes(key))
+						newItem[key] = item[key];
 					else newItem[key] = Math.round((item[key] / item.playtime) * 600 * 100) / 100;
 				});
 				return newItem;
@@ -264,7 +268,7 @@
 			returnString = parseFloat(input).toFixed(0).toString();
 		else returnString = parseFloat(input).toFixed(2).toString();
 
-		if (category === 'playtime' || category === 'captures_total_time') {
+		if (category === 'playtime' || category === 'capture_total_time') {
 			const totalSeconds = parseFloat(input);
 			if (totalSeconds > 60) {
 				let hours = Math.floor(totalSeconds / 3600).toString();
@@ -276,14 +280,14 @@
 				return hours + ':' + minutes + ':' + seconds;
 			} else return totalSeconds.toFixed(2).toString() + 's';
 		} else if (
-			category === 'captures_total_percent' &&
+			category === 'capture_total_percent' &&
 			averageOrNot === averageOrNotType.TotalValues
 		)
 			returnString = input.toString();
 		else if (category === 'accuracy')
 			returnString = (Math.round(input * 10000) / 100).toFixed(2).toString();
 
-		if (category === 'captures_total_percent' || category === 'accuracy') returnString += '%';
+		if (category === 'capture_total_percent' || category === 'accuracy') returnString += '%';
 		return returnString;
 	};
 
@@ -315,22 +319,27 @@
 		else $showedCategoriesPlayerStats = { ...showedCategoriesAllTrue };
 	};
 
-	$: {
-		if (startDate.getTime() !== defaultStartDate.getTime()) {
-			fetchData(selectedEvent);
-			const newUrlParams = $page.url.searchParams;
-			newUrlParams.set('start-date', startDate.toISOString().split('T')[0]);
-			pushState('?' + newUrlParams.toString(), {});
-		}
+	$: if (startDate !== startDateUnchanged) {
+		fetchData(selectedEvent);
+		const newUrlParams = $page.url.searchParams;
+		newUrlParams.set('start-date', startDate.toISOString().split('T')[0]);
+		pushState('?' + newUrlParams.toString(), {});
+
+		/* startDateUnchanged = startDate;
+		dataHasLoaded = false;
+		const newUrlParams = $page.url.searchParams;
+		newUrlParams.set('start-date', startDate.toISOString().split('T')[0]);
+		// load data again with new startDate
+		goto('?' + newUrlParams.toString(), { noScroll: true }).then(() =>
+			invalidate('app:player_stats').then(() => (dataHasLoaded = true))
+		); */
 	}
 
-	$: {
-		if (endDate.getTime() !== defaultEndDate.getTime()) {
-			fetchData(selectedEvent);
-			const newUrlParams = $page.url.searchParams;
-			newUrlParams.set('end-date', endDate.toISOString().split('T')[0]);
-			pushState('?' + newUrlParams.toString(), {});
-		}
+	$: if (endDate !== endDateUnchanged) {
+		fetchData(selectedEvent);
+		const newUrlParams = $page.url.searchParams;
+		newUrlParams.set('end-date', endDate.toISOString().split('T')[0]);
+		pushState('?' + newUrlParams.toString(), {});
 	}
 
 	let isAverageButtonActive;
@@ -348,9 +357,6 @@
 	};
 
 	// load the data
-	onMount(async () => {
-		fetchData(selectedEvent);
-	});
 
 	let eventDropdownOpen = false;
 	let averageDropdownOpen = false;
@@ -360,6 +366,7 @@
 	let summedEntry = {
 		login: 'total-values',
 		nickname: 'total-values',
+		shortname: 'total-values',
 		rank: 0,
 		ladder_points: 0,
 		points: 0,
@@ -373,8 +380,8 @@
 		ball_hits: 0,
 		backstabs: 0,
 		captures: 0,
-		captures_total_percent: 0,
-		captures_total_time: 0,
+		capture_total_percent: 0,
+		capture_total_time: 0,
 		playtime: 0,
 		maps_played: 0,
 		maps_won: 0
@@ -385,9 +392,11 @@
 		if (showTeamStats) {
 			averageEntry.login = 'average-team';
 			averageEntry.nickname = 'average-team';
+			averageEntry.shortname = 'average-team';
 		} else {
 			averageEntry.login = 'average-player';
 			averageEntry.nickname = 'average-player';
+			averageEntry.shortname = 'average-player';
 		}
 	}
 
@@ -413,9 +422,9 @@
 	const dontAddUpForTeams = ['accuracy', 'maps_won', 'maps_played', 'kd_ratio', 'playtime'];
 	$: {
 		teamData = [];
-		if (data.teams === undefined) teamData = [];
+		if (apiFetchedData.teams === undefined) teamData = [];
 		else {
-			data.teams.forEach((team) => {
+			apiFetchedData.teams.forEach((team) => {
 				let summedTeamEntry = {
 					login: team.logins,
 					nickname: team.logins,
@@ -432,17 +441,19 @@
 					ball_hits: 0,
 					backstabs: 0,
 					captures: 0,
-					captures_total_percent: 0,
-					captures_total_time: 0,
+					capture_total_percent: 0,
+					capture_total_time: 0,
 					playtime: 0,
 					maps_played: 0,
 					maps_won: 0
 				};
-				const players = data.playerList.filter((player) => team.logins.includes(player.login));
+				const players = apiFetchedData.playerList.filter((player) =>
+					team.logins.includes(player.login)
+				);
 				summedTeamEntry.nickname = players.map((player) => player.nickname.toString()).join('$z, ');
 				// assign the players player1,player2,player3 to a team if registered in the teams database
-				if (data.formedTeamsAssignments !== undefined) {
-					const teamAssignment = data.formedTeamsAssignments
+				if (apiFetchedData.formedTeamsAssignments !== undefined) {
+					const teamAssignment = apiFetchedData.formedTeamsAssignments
 						.filter((teamEntry) => teamEntry.event === selectedEvent)
 						.filter((teamEntry) =>
 							players.every((player) => teamEntry.login.includes(player.login))
@@ -455,7 +466,7 @@
 					}
 				}
 				Object.keys(summedTeamEntry).forEach((category) => {
-					if (category !== 'login' && category !== 'nickname') {
+					if (category !== 'login' && category !== 'nickname' && category !== 'shortname') {
 						summedTeamEntry[category] = players.reduce(
 							(a, b) =>
 								a +
@@ -478,104 +489,20 @@
 			parseFloat(item.ladder_points)
 		)
 	);
+
+	onMount(() => fetchData(selectedEvent));
 </script>
 
 <!-- class="mt-4 bg-opacity-75"
 	style="background-image:url({headerImage}); filter: grayscale(100%)" -->
 <div>
 	<div>
-		<Button class="w-40 whitespace-nowrap"
-			>{selectedEvent !== 'all' && selectedEvent !== 'public'
-				? prettifySelectedEvent(selectedEvent)
-				: selectedEvent === 'all'
-					? m.events_all()
-					: m.events_public()}<ChevronDownOutline
-				class="ms-2 h-6 w-6 text-white dark:text-white"
-			/></Button
-		>
-		<Dropdown bind:open={eventDropdownOpen}>
-			<DropdownItem on:click={() => changeSelectedEvent('all')}>{m.events_all()}</DropdownItem>
-			<DropdownItem on:click={() => changeSelectedEvent('public')}>{m.events_public()}</DropdownItem
-			>
-			<DropdownDivider />
-			{#each Object.entries(eventListOrganized) as [event_name, events_array], index}
-				<li>
-					<!-- svelte-ignore a11y-mouse-events-have-key-events -->
-					<button
-						id="doubleDropdownButton-{index}"
-						data-dropdown-toggle="doubleDropdown-{index}"
-						data-dropdown-placement="right-start"
-						on:mouseover={() => {
-							dropdownHoveredActive = 'doubleDropdown-' + index.toString();
-						}}
-						on:mouseleave={() => {
-							dropdownHoveredActive = '';
-						}}
-						type="button"
-						class="flex w-44 items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-						>{prettifySelectedEvent(event_name)}<ChevronRightOutline
-							class="ms-2 h-6 w-6 text-primary-700 dark:text-white"
-						/></button
-					>
-					<!-- svelte-ignore a11y-no-static-element-interactions -->
-					<!-- svelte-ignore a11y-mouse-events-have-key-events -->
-					<div
-						on:mouseover={() => {
-							dropdownHoveredActive = 'doubleDropdown-' + index.toString();
-						}}
-						class="{dropdownHoveredActive === 'doubleDropdown-' + index.toString()
-							? 'visible'
-							: 'hidden'} absolute left-44 -mt-12"
-					>
-						<div
-							id="doubleDropdown-{index}"
-							class="z-10 ml-1 w-fit divide-y divide-gray-100 whitespace-nowrap rounded-lg bg-white shadow dark:bg-gray-700"
-						>
-							<ul
-								class="max-h-96 overflow-y-auto py-2 text-left text-sm text-gray-700 dark:text-gray-200"
-								aria-labelledby="doubleDropdownButton"
-							>
-								<li>
-									<button
-										on:click={() => changeSelectedEvent(event_name + '-' + 'all')}
-										class="block w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-										>{m.events_all()}</button
-									>
-								</li>
-
-								<DropdownDivider />
-								{#each events_array as event}
-									<li>
-										<button
-											on:click={() => changeSelectedEvent(event_name + '-' + event.event_number)}
-											class="block w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-											>{prettifySelectedEvent(event_name) + ' ' + event.event_number}</button
-										>
-									</li>
-								{/each}
-							</ul>
-						</div>
-					</div>
-				</li>
-				<!--<DropdownItem class="flex items-center justify-between">
-					{prettifySelectedEvent(event_name)}<ChevronRightOutline
-						class="ms-2 h-6 w-6 text-primary-700 dark:text-white"
-					/>
-				</DropdownItem>
-				<Dropdown class="max-h-96 overflow-y-auto whitespace-nowrap" placement="right-start">
-					<DropdownItem on:click={() => changeSelectedEvent(event_name + '-' + 'all')}
-						>{m.events_all()}</DropdownItem
-					>
-					<DropdownDivider />
-					{#each events_array as event}
-						<DropdownItem
-							on:click={() => changeSelectedEvent(event_name + '-' + event.event_number)}
-							>{prettifySelectedEvent(event_name) + ' ' + event.event_number}</DropdownItem
-						>
-					{/each}
-				</Dropdown>-->
-			{/each}
-		</Dropdown>
+		<EventSelector
+			showAllAndPublic={true}
+			eventList={apiFetchedData.eventList}
+			selectedEvent={apiFetchedData.fullEventName}
+			loadFunction={changeSelectedEvent}
+		/>
 
 		<Button class="mx-2"
 			>{m.table_shown_columns()}<ChevronDownOutline
@@ -771,9 +698,9 @@
 									: selectedEvent === 'all'
 										? m.events_all()
 										: m.events_public(),
-							amountPlayers: (data.playerList ?? []).length,
+							amountPlayers: (apiFetchedData.playerList ?? []).length,
 							amountMaps: Math.ceil(
-								(data.playerList ?? []).reduce(
+								(apiFetchedData.playerList ?? []).reduce(
 									(partialSum, playerItem) => partialSum + parseInt(playerItem.maps_played),
 									0
 								) / 6
@@ -795,7 +722,7 @@
 					{#each Object.keys($showedCategoriesPlayerStats) as category, i (category)}
 						{#if $showedCategoriesPlayerStats[category] === true}
 							<TableHeadCell
-								class="sticky top-0 bg-sky-400 text-white dark:bg-sky-800 {category === 'nickname'
+								class="sticky top-0 bg-sky-400 text-white dark:bg-sky-800 {category === 'shortname'
 									? 'left-0 top-0 z-20 '
 									: 'z-10'} {!categoriesLeftAligned.includes(category) ? 'text-right' : ''}"
 								on:click={() => {
@@ -850,7 +777,7 @@
 								>
 								{#each Object.keys($showedCategoriesPlayerStats) as category, i (category)}
 									{#if $showedCategoriesPlayerStats[category] === true}
-										{#if category == 'nickname' && !['total-values', 'average-player', 'average-team'].includes(item.login)}
+										{#if category == 'shortname' && !['total-values', 'average-player', 'average-team'].includes(item.login)}
 											<!-- dark:hover:!bg-gray-60 hover:!bg-gray-50	hover:bg-slate-100	dark:hover:bg-slate-600-->
 											<!-- hover:bg-slate-100 dark:bg-gray-800 hover:dark:bg-slate-600 [&:not(:hover)]:bg-white  [&:not(:hover)]:dark:bg-gray-800" -->
 											<TableBodyCell
@@ -875,7 +802,7 @@
 													title="login: {item.login}"
 													placement="right"
 													triggeredBy={'#cell-login-' + index.toString()}
-													>{@html colorParserToHtml(item[category])}</Popover
+													>{@html colorParserToHtml(item.nickname)}</Popover
 												>
 												<!--<Tooltip
 													placement="right"
@@ -891,6 +818,13 @@
 													item['maps_played'],
 													category
 												)}
+											</TableBodyCell>
+										{:else if category === 'nickname'}
+											<TableBodyCell
+												class={!categoriesLeftAligned.includes(category) ? 'text-right' : ''}
+											>
+												<!--{Number.parseFloat(entry).toFixed(2) + trailingSymbol(category)}-->
+												{@html colorParserToHtml(item[category])}
 											</TableBodyCell>
 										{:else}
 											<TableBodyCell
