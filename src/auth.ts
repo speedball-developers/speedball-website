@@ -2,6 +2,7 @@ import { i18n } from '$lib/i18n';
 import { SvelteKitAuth } from '@auth/sveltekit';
 import { redirect } from '@sveltejs/kit';
 import 'dotenv/config';
+import { PUBLIC_WEBSITE_ADMINS } from '$env/static/public';
 // import type { Adapter } from '@auth/adapters';
 
 const apiURL = 'https://prod.live.maniaplanet.com';
@@ -61,7 +62,7 @@ export const { handle, signIn, signOut } = SvelteKitAuth({
 
 // every route that starty with /admin or starts with /api and contains /admin will be blocked if you are not an admin
 export async function authorizationAdminURLHandle({ event, resolve }) {
-	const listOfAdmin = ['rsty', 'dmark', 'gamer0x', 'der_rote_flitzer'];
+	const listOfAdmin = PUBLIC_WEBSITE_ADMINS.split(',');
 	const currentUrl = i18n.route(event.url.pathname);
 	if (currentUrl.startsWith('/admin') || currentUrl.startsWith('/api/admin')) {
 		const session = await event.locals.auth();

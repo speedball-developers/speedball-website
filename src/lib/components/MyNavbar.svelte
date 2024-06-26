@@ -23,6 +23,7 @@
 	import { signIn, signOut } from '@auth/sveltekit/client';
 	import LanguageSwitcher from '$components/LanguageSwitcher.svelte';
 	import colorParserToHtml from '$lib/color_parser';
+	import { PUBLIC_WEBSITE_ADMINS } from '$env/static/public';
 </script>
 
 <img
@@ -53,7 +54,7 @@
 					>{$page.data.session?.profile?.login.slice(0, 2).toUpperCase()}</Avatar
 				>
 			</div>
-			<Dropdown triggeredBy="#profileAvatar">
+			<Dropdown classContainer="min-w-28 w-auto max-w-40" triggeredBy="#profileAvatar">
 				<DropdownHeader>
 					<span class="block truncate text-sm font-medium"
 						>{@html colorParserToHtml($page.data.session?.profile?.nickname ?? '')}</span
@@ -62,9 +63,12 @@
 				</DropdownHeader><a href="/profile/{$page.data.session?.profile?.login}">
 					<DropdownItem>Profile</DropdownItem></a
 				>
-				<a href="/profile/{$page.data.session?.profile?.login}#settings"
+				<a class="w-10" href="/profile/{$page.data.session?.profile?.login}#settings"
 					><DropdownItem>Settings</DropdownItem></a
 				>
+				{#if PUBLIC_WEBSITE_ADMINS.split(',').includes($page.data.session?.profile?.login)}
+					<a href="/admin/"> <DropdownItem>Admin Page</DropdownItem></a>
+				{/if}
 				<DropdownDivider />
 				<DropdownItem>
 					<!-- data-no-translate -->
