@@ -1,6 +1,5 @@
 import { db } from '$lib/server/db.js';
 import {
-	playerListTable,
 	playerResultsTable,
 	mapRoundsTable,
 	mapResultsTable,
@@ -11,10 +10,8 @@ import {
 	playersTable
 } from '$lib/server/schema.js';
 import { eq, min, max, sum, count, sql, desc, gt, lt, and, ne, or, inArray } from 'drizzle-orm';
-import { event_number, map_results } from '$lib/server/drizzle/schema';
 import type { ServerLoadEvent } from '@sveltejs/kit';
 import type { RouteParams } from '../../routes/$types';
-import type { Session } from '@auth/sveltekit';
 import getEventList from './event_list';
 
 export const getData = async ({ cookies, fetch, params, url }) => {
@@ -62,36 +59,8 @@ export const getData = async ({ cookies, fetch, params, url }) => {
 		eventName = 'all';
 	}
 
-	/* const countedPlayerList = await db
-		.select({ count: sql<number>`cast(count(distinct ${playerResultsTable.login}) as int)` })
-		.from(playerResultsTable)
-		.innerJoin(mapRoundsTable, eq(playerResultsTable.round_id, mapRoundsTable.id))
-		.innerJoin(mapResultsTable, eq(mapRoundsTable.map_result_id, mapResultsTable.id));
-
-		countedPlayerList: countedPlayerList[0].count
-		*/
-
 	let eventIsCachedInDatabase = false;
 	let playerList;
-
-	/*playerList = await db
-		.select({
-			login: playerResultsTable.login,
-			nickname: playerResultsTable.nickname,
-			rank: min(playerResultsTable.ladder_rank),
-			ladder_points: max(playerResultsTable.ladder_points),
-			points: sum(playerResultsTable.points),
-			damage: sum(playerResultsTable.damage),
-			shots: sum(playerResultsTable.shots),
-			kills: sum(playerResultsTable.kills),
-			deaths: sum(playerResultsTable.deaths)
-		})
-		.from(playerResultsTable)
-		.orderBy(playerResultsTable.damage)
-		.innerJoin(mapRoundsTable, eq(playerResultsTable.round_id, mapRoundsTable.id))
-		.innerJoin(mapResultsTable, eq(mapRoundsTable.map_result_id, mapResultsTable.id))
-		.groupBy(playerResultsTable.login);
-		if(playerList.length > 0) eventIsCachedInDatabase = true */
 
 	// only load cached data if no start and end date is set
 	if (endDate === defaultEndDate && startDate === defaultStartDate) {
@@ -143,6 +112,7 @@ export const getData = async ({ cookies, fetch, params, url }) => {
 		lt(mapResultsTable.date, endDate)
 	);
 
+	// load player list if not cached in database
 	if (!eventIsCachedInDatabase) {
 		playerList = await db
 			.select({
