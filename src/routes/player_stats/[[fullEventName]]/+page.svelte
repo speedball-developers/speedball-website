@@ -190,7 +190,8 @@
 			(item) =>
 				item.ladder_points >= minLadderPoints &&
 				(item.login.toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1 ||
-					item.nickname.toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1)
+					item.nickname.toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1 ||
+					item.shortname.toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1)
 		);
 
 		// change values if Average per Map or Average per 10 Minutes has been selected instead of Total Values
@@ -409,7 +410,7 @@
 
 	$: if (filteredAndSortedItems !== undefined && filteredAndSortedItems.length > 0) {
 		Object.keys(summedEntry).forEach((category) => {
-			if (category !== 'login' && category !== 'nickname') {
+			if (category !== 'login' && category !== 'nickname' && category !== 'shortname') {
 				summedEntry[category] = filteredAndSortedItems.reduce(
 					(a, b) => a + parseFloat(b[category]),
 					0
@@ -428,6 +429,7 @@
 				let summedTeamEntry = {
 					login: team.logins,
 					nickname: team.logins,
+					shortName: team.logins,
 					rank: 0,
 					ladder_points: 0,
 					points: 0,
@@ -451,6 +453,11 @@
 					team.logins.includes(player.login)
 				);
 				summedTeamEntry.nickname = players.map((player) => player.nickname.toString()).join('$z, ');
+				summedTeamEntry.shortname = players
+					.map((player) =>
+						apiFetchedData.playerList.find((p) => p.login === player.login)?.shortname?.toString()
+					)
+					.join('$z, ');
 				// assign the players player1,player2,player3 to a team if registered in the teams database
 				if (apiFetchedData.formedTeamsAssignments !== undefined) {
 					const teamAssignment = apiFetchedData.formedTeamsAssignments
@@ -500,7 +507,7 @@
 		<EventSelector
 			showAllAndPublic={true}
 			eventList={apiFetchedData.eventList}
-			selectedEvent={apiFetchedData.fullEventName}
+			selectedEvent={apiFetchedData.fullEventName ?? $page.params.fullEventName ?? 'all'}
 			loadFunction={changeSelectedEvent}
 		/>
 
@@ -783,7 +790,7 @@
 											<TableBodyCell
 												class="sticky left-0 z-10 {showTeamStats
 													? 'w-96 max-w-96'
-													: 'w-48 max-w-48'} {index % 2 === 0
+													: 'w-36 max-w-36'} {index % 2 === 0
 													? 'bg-white dark:bg-gray-800'
 													: 'bg-gray-50 dark:bg-gray-700'}"
 											>
@@ -794,7 +801,7 @@
 															? 'max-w-96'
 															: 'max-w-48'} overflow-hidden text-ellipsis"
 													>
-														{@html colorParserToHtml(item[category])}
+														{@html colorParserToHtml(item[category] ?? '')}
 													</div>
 												</a>
 												<Popover
@@ -914,6 +921,20 @@
 </div>
 
 <style>
+	@font-face {
+		font-family: 'RobotoMono';
+		font-style: normal;
+		font-weight: 500;
+		src:
+			local('RobotoMono Regular'),
+			local('RobotoMono-Regular'),
+			url('/fonts/RobotoMono-Regular.woff2') format('woff2');
+	}
+
+	:global(td) {
+		font-family: RobotoMono, monospace;
+	}
+
 	/*.sticky-table-wrapper {
 		max-height: 80svh;
 		max-width: 100svw;
